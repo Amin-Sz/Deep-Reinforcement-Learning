@@ -11,9 +11,7 @@ class NeuralNetwork(tf.keras.Model):
     def __init__(self, output_size, hidden_layers=[10]):
         super(NeuralNetwork, self).__init__()
         self.Layers = []
-        dense = Dense(units=hidden_layers[0], activation='relu')
-        self.Layers.append(dense)
-        for n in hidden_layers[1:]:
+        for n in hidden_layers:
             dense = Dense(units=n, activation='relu')
             self.Layers.append(dense)
         dense = Dense(units=output_size, activation='linear')
@@ -30,27 +28,30 @@ class Agent:
         self.replay_buffer = []
         self.tau = tau
         self.Q_network = NeuralNetwork(output_size=1, hidden_layers=Q_layers)
-        self.Q_network.compile(optimizer=Adam(learning_rate=lr_Q), loss=squared_error)  # CHECK THIS
+        self.Q_network.compile(optimizer=Adam(learning_rate=lr_Q), loss='mean_squared_error')  # CHECK THIS
         self.policy_network = NeuralNetwork(output_size=action_size, hidden_layers=policy_layers)
-        self.policy_optimizer = Adam(learning_rate=lr_policy)
+        self.policy_network.compile(optimizer=Adam(learning_rate=lr_policy))
 
         self.Q_network_target = self.Q_network
         self.policy_network_target = self.policy_network
 
     def update_Q(self, scaled_state, y):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
+        scaled_state = tf.squeeze(scaled_state)
+        y = tf.convert_to_tensor(y, dtype=tf.float32)
         mu = self.policy_network.predict(scaled_state)
         x = Concatenate()([scaled_state, mu])
         self.Q_network.fit(x, y, verbose=0)
 
     def update_policy(self, scaled_state):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
-        with tf.GradientTape as tape:
+        scaled_state = tf.squeeze(scaled_state)
+        with tf.GradientTape() as tape:
             mu = self.policy_network.predict(scaled_state)
             x = Concatenate()([scaled_state, mu])  # CHECK THIS
-            loss = -tf.reduce_mean(self.Q_network(x))  # CHECK THIS
+            loss = -tf.reduce_mean(self.Q_network.predict(x))  # CHECK THIS
         gradients = tape.gradient(loss, self.policy_network.trainable_variables)
-        self.policy_optimizer.apply_gradients(zip(gradients, self.policy_network.trainable_variables))
+        self.policy_network.optimizer.apply_gradients(zip(gradients, self.policy_network.trainable_variables))
 
     def update_Q_target(self):
         for i in range(len(self.Q_network_target.trainable_variables)):
@@ -67,24 +68,23 @@ class Agent:
                 read_values=False)
 
     def get_action(self, scaled_state):
-        scaled_state = tf.convert_to_tensor([scaled_state], dtype=tf.float32)
+        scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
         action = self.policy_network.predict(scaled_state)
         action = tf.squeeze(action)
         action = action.numpy()
-        for i in range(len(action)):
-            if action[i] >= 1:
-                action[i] = 1
-            elif action[i] <= -1:
-                action[i] = -1
-            else:
-                pass
-        return action
+        if action >= 1:
+            return 1
+        elif action <= -1:
+            return -1
+        else:
+            return action
 
     def get_Q_target(self, scaled_state):
-        scaled_state = tf.convert_to_tensor([scaled_state], dtype=tf.float32)
-        mu = self.policy_network.predict(scaled_state)
+        scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
+        mu = self.policy_network_target.predict(scaled_state)
         x = Concatenate()([scaled_state, mu])
-        return self.Q_network_target.predict(x)
+        Q_target = tf.squeeze(self.Q_network_target.predict(x))
+        return Q_target.numpy()
 
 
 def squared_error(y_true, y_predict):
@@ -107,7 +107,7 @@ def play_one_game(env, agent, scaler):  # CHECK THIS
     counter = 0
     total_reward = 0
     while not done:
-        a = agent.get_action(scaler.transform(observation))  # CHECK THIS
+        a = agent.get_action(scaler.transform([observation]))  # CHECK THIS
         prev_observation = observation
         observation, reward, done, info = env.step([a])  # CHECK THIS
         total_reward = total_reward + reward
@@ -129,8 +129,8 @@ agent = Agent(lr_Q=0.005, lr_policy=0.005, Q_layers=[10, 20, 25], action_size=en
 
 
 # Training
-num_iteration = 1000
-max_buffer_size = 50000
+num_iteration = 200
+max_buffer_size = 5000
 min_buffer_size = 1000
 batch_size = 32
 gamma = 0.95  # Discount factor
@@ -138,10 +138,10 @@ reward_set = []
 avg_reward_set = []
 
 for t in range(num_iteration):
-    counter, total_reward = play_one_game(env, agent, scaler)
+    total_reward, counter = play_one_game(env, agent, scaler)
     reward_set.append(total_reward)
     avg_reward_set.append(np.mean(reward_set[-100:]))
-    if t % 100 == 0:
+    if t % 10 == 0:
         print('iteration #', str(t), '--->', 'total reward:', str(total_reward), ', ',
               'averaged reward:', str(np.mean(reward_set[-100:])))
 
@@ -151,9 +151,9 @@ for t in range(num_iteration):
             X = []
             Y = []
             for i in idx:
-                (s_train, a_train, r_train, s2_train, done_train) = agent.replay_buffer[i][0]
-                X.append(scaler.transform(s_train))
-                target = r_train + gamma*(1 - done_train)*agent.get_Q_target(scaler.transform(s2_train))
+                (s_train, a_train, r_train, s2_train, done_train) = agent.replay_buffer[i]
+                X.append(scaler.transform([s_train]))
+                target = r_train + gamma*(1 - done_train)*agent.get_Q_target(scaler.transform([s2_train]))
                 Y.append(target)
             agent.update_Q(X, Y)
             agent.update_policy(X)
