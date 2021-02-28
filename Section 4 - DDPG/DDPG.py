@@ -49,8 +49,10 @@ class Agent:
         self.replay_buffer = ReplayBuffer(max_size=mem_max_size)
         self.tau = tau
         self.action_size = action_size
-        self.Q_network = ann(input_size=int(state_size + action_size), lr=lr_Q, layers=Q_layers)  # CHECK THE LOSS FUNCTION
-        self.policy_network = ann(input_size=state_size, lr=lr_policy, layers=policy_layers)
+        self.Q_network = ann(input_size=int(state_size + action_size), layers=Q_layers)  # CHECK THE LOSS FUNCTION
+        self.Q_network.compile(optimizer=Adam(learning_rate=lr_Q), loss='mean_squared_error')
+        self.policy_network = ann(input_size=state_size, layers=policy_layers)
+        self.policy_network.compile(optimizer=Adam(learning_rate=lr_policy))
         self.Q_network_target = self.Q_network
         self.policy_network_target = self.policy_network
 
@@ -74,7 +76,7 @@ class Agent:
 
     def update_networks(self, scaled_states, actions, rewards, scaled_next_states, dones, gamma):
         scaled_states = tf.convert_to_tensor(scaled_states, dtype=tf.float32)
-        actions = tf.convert_to_tensor(actions, dtype=tf.float32)
+        actions = tf.convert_to_tensor(actions.reshape(-1, 1), dtype=tf.float32)
         rewards = tf.convert_to_tensor(rewards, dtype=tf.float32)
         scaled_next_states = tf.convert_to_tensor(scaled_next_states, dtype=tf.float32)
         dones = np.array(dones)
@@ -82,7 +84,7 @@ class Agent:
 
         X_Q = Concatenate()([scaled_states, actions])
         Y_Q = rewards + gamma*(1 - dones)*self.get_Q_target(scaled_next_states)
-        self.Q_network.fit(X_Q, Y_Q)
+        self.Q_network.fit(X_Q, Y_Q, verbose=0)
 
         with tf.GradientTape() as tape:
             mu = self.policy_network.call(scaled_states)  # This should be different than actions (due to noise)
@@ -103,7 +105,7 @@ class Agent:
             self.policy_network_target.trainable_variables[i].assign(
                 self.policy_network_target.trainable_variables[i]*self.tau +
                 self.policy_network.trainable_variables[i]*(1 - self.tau),
-                read_values=False)
+                read_value=False)
 
     def get_action(self, scaled_state):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
@@ -119,14 +121,13 @@ class Agent:
         return tf.squeeze(self.Q_network_target.call(x))
 
 
-def ann(input_size, lr, layers=[(10, 'relu')]):
+def ann(input_size, layers=[(10, 'relu')]):
     model = Sequential()
     for i, (neurons, act) in enumerate(layers):
         if i == 0:
             model.add(Dense(units=neurons, activation=act, input_dim=input_size))
         else:
             model.add(Dense(units=neurons, activation=act))
-    model.compile(optimizer=Adam(learning_rate=lr))
     return model
 
 
@@ -144,7 +145,7 @@ def get_scaler(env):
     return scaler
 
 
-def play_one_game(env, agent, scaler):  # CHECK THIS (that agent gets updated)
+def play_one_game(env, scaler):  # CHECK THIS (that agent gets updated)
     observation = env.reset()
     done = False
     counter = 0
@@ -179,7 +180,7 @@ reward_set = []
 avg_reward_set = []
 
 for t in range(num_iteration):
-    total_reward, counter = play_one_game(env, agent, scaler)
+    total_reward, counter = play_one_game(env, scaler)
 
     if agent.replay_buffer.mem_size >= min_buffer_size:
         for j in range(counter):
@@ -190,8 +191,8 @@ for t in range(num_iteration):
 
     reward_set.append(total_reward)
     avg_reward_set.append(np.mean(reward_set[-100:]))
-    if t % 10 == 0:
-        print('iteration #' + str(t), '--->', 'total reward:' + '%.3f' % total_reward, ', ',
+    if t % 1 == 0:
+        print('iteration #' + str(t), '--->', 'total reward:' + '%.3f' % total_reward + ', ',
               'averaged reward:' + '%.3f' % np.mean(reward_set[-100:]))
 
 
