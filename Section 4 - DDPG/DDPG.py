@@ -201,6 +201,7 @@ for t in range(num_iteration):
 # Plotting the results
 plt.plot(reward_set)
 plt.plot(avg_reward_set)
+plt.plot(counter_set)
 
 
 
