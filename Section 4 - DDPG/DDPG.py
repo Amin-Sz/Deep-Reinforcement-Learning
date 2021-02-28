@@ -166,9 +166,9 @@ def play_one_game(env, scaler):  # CHECK THIS (that agent gets updated)
 env = gym.make('MountainCarContinuous-v0')
 scaler = get_scaler(env)
 max_buffer_size = 5000
-agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.005, lr_policy=0.005, state_size=env.observation_space.shape[0],
+agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.005, lr_policy=0.001, state_size=env.observation_space.shape[0],
               action_size=env.action_space.shape[0], Q_layers=[(10, 'relu'), (20, 'relu'), (25, 'relu'), (1, 'linear')],
-              policy_layers=[(10, 'relu'), (20, 'relu'), (env.action_space.shape[0], 'linear')], tau=0.99)
+              policy_layers=[(10, 'relu'), (20, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.99)
 
 
 # Training
