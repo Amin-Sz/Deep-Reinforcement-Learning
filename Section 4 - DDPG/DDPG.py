@@ -36,11 +36,11 @@ class ReplayBuffer:
 
     def sample(self, batch_size):
         idx = np.random.choice(self.mem_size, size=batch_size, replace=False)
-        states = np.squeeze(np.array(self.states[idx]))
-        actions = np.squeeze(np.array(self.actions[idx]))
-        rewards = np.squeeze(np.array(self.rewards[idx]))
-        next_states = np.squeeze(np.array(self.next_states[idx]))
-        dones = np.squeeze(np.array(self.dones[idx]))
+        states = np.squeeze(np.array(self.states)[idx])
+        actions = np.squeeze(np.array(self.actions)[idx])
+        rewards = np.squeeze(np.array(self.rewards)[idx])
+        next_states = np.squeeze(np.array(self.next_states)[idx])
+        dones = np.squeeze(np.array(self.dones)[idx])
         return states, actions, rewards, next_states, dones
 
 
@@ -48,6 +48,7 @@ class Agent:
     def __init__(self, mem_max_size, lr_Q, lr_policy, state_size, action_size, Q_layers, policy_layers, tau):
         self.replay_buffer = ReplayBuffer(max_size=mem_max_size)
         self.tau = tau
+        self.action_size = action_size
         self.Q_network = ann(input_size=int(state_size + action_size), lr=lr_Q, layers=Q_layers)  # CHECK THE LOSS FUNCTION
         self.policy_network = ann(input_size=state_size, lr=lr_policy, layers=policy_layers)
         self.Q_network_target = self.Q_network
@@ -106,7 +107,8 @@ class Agent:
 
     def get_action(self, scaled_state):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
-        action = self.policy_network.call(scaled_state)
+        action = self.policy_network.call(scaled_state) + tf.random.normal(shape=[self.action_size],
+                                                                           mean=0.0, stddev=0.5)
         action = tf.clip_by_value(action, clip_value_min=-1, clip_value_max=1)
         action = tf.squeeze(action)
         return action
@@ -179,18 +181,18 @@ avg_reward_set = []
 for t in range(num_iteration):
     total_reward, counter = play_one_game(env, agent, scaler)
 
-    '''if agent.replay_buffer.mem_size >= min_buffer_size:
+    if agent.replay_buffer.mem_size >= min_buffer_size:
         for j in range(counter):
             s, a, r, s2, done = agent.replay_buffer.sample(batch_size=batch_size)  # CHECK THIS
             agent.update_networks(scaler.transform(s), a, r, scaler.transform(s2), done, gamma=gamma)
             agent.update_Q_target()
-            agent.update_policy_target()'''
+            agent.update_policy_target()
 
     reward_set.append(total_reward)
     avg_reward_set.append(np.mean(reward_set[-100:]))
     if t % 10 == 0:
-        print('iteration #' + str(t), '--->', 'total reward:' + '%.3f' % str(total_reward), ', ',
-              'averaged reward:' + '%.3f' % str(np.mean(reward_set[-100:])))
+        print('iteration #' + str(t), '--->', 'total reward:' + '%.3f' % total_reward, ', ',
+              'averaged reward:' + '%.3f' % np.mean(reward_set[-100:]))
 
 
 # Plotting the results
