@@ -48,8 +48,8 @@ class Agent:
     def __init__(self, mem_max_size, lr_Q, lr_policy, state_size, action_size, Q_layers, policy_layers, tau):
         self.replay_buffer = ReplayBuffer(max_size=mem_max_size)
         self.tau = tau
-        self.Q_network = ann(input_size=state_size, lr=lr_Q, layers=Q_layers)  # CHECK THE LOSS FUNCTION
-        self.policy_network = ann(input_size=int(state_size + action_size), lr=lr_policy, layers=policy_layers)
+        self.Q_network = ann(input_size=int(state_size + action_size), lr=lr_Q, layers=Q_layers)  # CHECK THE LOSS FUNCTION
+        self.policy_network = ann(input_size=state_size, lr=lr_policy, layers=policy_layers)
         self.Q_network_target = self.Q_network
         self.policy_network_target = self.policy_network
 
@@ -84,9 +84,9 @@ class Agent:
         self.Q_network.fit(X_Q, Y_Q)
 
         with tf.GradientTape() as tape:
-            mu = self.policy_network.predict(scaled_states)  # This should be different than actions (due to noise)
+            mu = self.policy_network.call(scaled_states)  # This should be different than actions (due to noise)
             x = Concatenate()([scaled_states, mu])
-            loss_value = -tf.reduce_mean(self.Q_network.predict(x))
+            loss_value = -tf.reduce_mean(self.Q_network.call(x))
         gradients = tape.gradient(loss_value, self.policy_network.trainable_variables)
         self.policy_network.optimizer.apply_gradients(zip(gradients, self.policy_network.trainable_variables))
 
@@ -106,20 +106,15 @@ class Agent:
 
     def get_action(self, scaled_state):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
-        action = self.policy_network.predict(scaled_state)
+        action = self.policy_network.call(scaled_state)
+        action = tf.clip_by_value(action, clip_value_min=-1, clip_value_max=1)
         action = tf.squeeze(action)
-        action = action.numpy()
-        if action >= 1:
-            return 1
-        elif action <= -1:
-            return -1
-        else:
-            return action
+        return action
 
     def get_Q_target(self, scaled_state):
-        mu = self.policy_network_target.predict(scaled_state)
+        mu = self.policy_network_target.call(scaled_state)
         x = Concatenate()([scaled_state, mu])
-        return tf.squeeze(self.Q_network_target.predict(x))
+        return tf.squeeze(self.Q_network_target.call(x))
 
 
 def ann(input_size, lr, layers=[(10, 'relu')]):
@@ -147,7 +142,7 @@ def get_scaler(env):
     return scaler
 
 
-def play_one_game(env, agent, scaler):  # CHECK THIS
+def play_one_game(env, agent, scaler):  # CHECK THIS (that agent gets updated)
     observation = env.reset()
     done = False
     counter = 0
@@ -174,7 +169,7 @@ agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.005, lr_policy=0.005, state_s
 
 
 # Training
-num_iteration = 200
+num_iteration = 50
 min_buffer_size = 1000
 batch_size = 32
 gamma = 0.95  # Discount factor
@@ -184,18 +179,18 @@ avg_reward_set = []
 for t in range(num_iteration):
     total_reward, counter = play_one_game(env, agent, scaler)
 
-    if agent.replay_buffer.mem_size >= min_buffer_size:
+    '''if agent.replay_buffer.mem_size >= min_buffer_size:
         for j in range(counter):
             s, a, r, s2, done = agent.replay_buffer.sample(batch_size=batch_size)  # CHECK THIS
             agent.update_networks(scaler.transform(s), a, r, scaler.transform(s2), done, gamma=gamma)
             agent.update_Q_target()
-            agent.update_policy_target()
+            agent.update_policy_target()'''
 
     reward_set.append(total_reward)
     avg_reward_set.append(np.mean(reward_set[-100:]))
     if t % 10 == 0:
-        print('iteration #' + str(t), '--->', 'total reward:' + str(total_reward), ', ',
-              'averaged reward:' + str(np.mean(reward_set[-100:])))
+        print('iteration #' + str(t), '--->', 'total reward:' + '%.3f' % str(total_reward), ', ',
+              'averaged reward:' + '%.3f' % str(np.mean(reward_set[-100:])))
 
 
 # Plotting the results
