@@ -175,9 +175,10 @@ agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.005, lr_policy=0.005, state_s
 num_iteration = 50
 min_buffer_size = 1000
 batch_size = 32
-gamma = 0.95  # Discount factor
+gamma = 0.99  # Discount factor
 reward_set = []
 avg_reward_set = []
+counter_set = []
 
 for t in range(num_iteration):
     total_reward, counter = play_one_game(env, scaler)
@@ -189,6 +190,7 @@ for t in range(num_iteration):
             agent.update_Q_target()
             agent.update_policy_target()
 
+    counter_set.append(counter)
     reward_set.append(total_reward)
     avg_reward_set.append(np.mean(reward_set[-100:]))
     if t % 1 == 0:
