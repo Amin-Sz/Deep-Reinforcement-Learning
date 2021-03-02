@@ -53,8 +53,11 @@ class Agent:
         self.Q_network.compile(optimizer=Adam(learning_rate=lr_Q), loss='mean_squared_error')
         self.policy_network = ann(input_size=state_size, layers=policy_layers)
         self.policy_network.compile(optimizer=Adam(learning_rate=lr_policy))
-        self.Q_network_target = self.Q_network
-        self.policy_network_target = self.policy_network
+
+        self.Q_network_target = ann(input_size=int(state_size + action_size), layers=Q_layers)  # CHECK THESE
+        self.Q_network_target.compile(optimizer=Adam(learning_rate=lr_Q))
+        self.policy_network_target = ann(input_size=state_size, layers=policy_layers)
+        self.policy_network_target.compile(optimizer=Adam(learning_rate=lr_policy))
 
     '''def update_Q(self, scaled_state, y):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
@@ -94,23 +97,23 @@ class Agent:
         self.policy_network.optimizer.apply_gradients(zip(gradients, self.policy_network.trainable_variables))
 
     def update_Q_target(self):
-        for i in range(len(self.Q_network_target.trainable_variables)):
-            self.Q_network_target.trainable_variables[i].assign(
-                self.Q_network_target.trainable_variables[i]*self.tau +
-                self.Q_network.trainable_variables[i]*(1 - self.tau),
-                read_value=False)
+        variables = []
+        for i in range(len(self.Q_network_target.weights)):
+            variables.append(self.Q_network_target.weights[i]*self.tau +
+                             self.Q_network.weights[i]*(1 - self.tau))
+        self.Q_network_target.set_weights(variables)
 
     def update_policy_target(self):
-        for i in range(len(self.policy_network_target.trainable_variables)):
-            self.policy_network_target.trainable_variables[i].assign(
-                self.policy_network_target.trainable_variables[i]*self.tau +
-                self.policy_network.trainable_variables[i]*(1 - self.tau),
-                read_value=False)
+        variables = []
+        for i in range(len(self.policy_network_target.weights)):
+            variables.append(self.policy_network_target.weights[i]*self.tau +
+                             self.policy_network.weights[i]*(1 - self.tau))
+        self.policy_network_target.set_weights(variables)
 
     def get_action(self, scaled_state):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
         action = self.policy_network.call(scaled_state) + tf.random.normal(shape=[self.action_size],
-                                                                           mean=0.0, stddev=0.5)
+                                                                           mean=0.0, stddev=0.05)
         action = tf.clip_by_value(action, clip_value_min=-1, clip_value_max=1)
         action = tf.squeeze(action)
         return action
@@ -165,16 +168,16 @@ def play_one_game(env, scaler):  # CHECK THIS (that agent gets updated)
 # Creating the scaler, agent and environment
 env = gym.make('MountainCarContinuous-v0')
 scaler = get_scaler(env)
-max_buffer_size = 5000
-agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.005, lr_policy=0.001, state_size=env.observation_space.shape[0],
-              action_size=env.action_space.shape[0], Q_layers=[(10, 'relu'), (20, 'relu'), (25, 'relu'), (1, 'linear')],
-              policy_layers=[(10, 'relu'), (20, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.99)
+max_buffer_size = int(1e6)
+agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.001, lr_policy=0.001, state_size=env.observation_space.shape[0],
+              action_size=env.action_space.shape[0], Q_layers=[(300, 'relu'), (1, 'linear')],
+              policy_layers=[(300, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
 
 
 # Training
-num_iteration = 50
-min_buffer_size = 1000
-batch_size = 32
+num_iteration = 30
+min_buffer_size = 10000
+batch_size = 100
 gamma = 0.99  # Discount factor
 reward_set = []
 avg_reward_set = []
@@ -194,7 +197,7 @@ for t in range(num_iteration):
     reward_set.append(total_reward)
     avg_reward_set.append(np.mean(reward_set[-100:]))
     if t % 1 == 0:
-        print('iteration #' + str(t), '--->', 'total reward:' + '%.3f' % total_reward + ', ',
+        print('iteration #' + str(t + 1), '--->', 'total reward:' + '%.3f' % total_reward + ', ',
               'averaged reward:' + '%.3f' % np.mean(reward_set[-100:]))
 
 
