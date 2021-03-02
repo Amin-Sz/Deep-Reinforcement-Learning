@@ -175,7 +175,7 @@ agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.001, lr_policy=0.001, state_s
 
 
 # Training
-num_iteration = 30
+num_iteration = 50
 min_buffer_size = 10000
 batch_size = 100
 gamma = 0.99  # Discount factor
