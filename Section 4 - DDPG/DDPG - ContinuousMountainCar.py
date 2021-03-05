@@ -113,7 +113,7 @@ class Agent:
     def get_action(self, scaled_state):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
         action = self.policy_network.call(scaled_state) + tf.random.normal(shape=[self.action_size],
-                                                                           mean=0.0, stddev=0.05)
+                                                                           mean=0.0, stddev=0.05)*0
         action = tf.clip_by_value(action, clip_value_min=-1, clip_value_max=1)
         action = tf.squeeze(action)
         return action
