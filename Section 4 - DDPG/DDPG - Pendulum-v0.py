@@ -201,7 +201,7 @@ agent.actor_network_target.save('actor_target_pendulum.h5')
 agent.critic_network_target.save('critic_target_pendulum.h5')
 
 
-# Saving the video
+# Showing the video
 observation = env.reset()
 done = False
 total_reward = 0
