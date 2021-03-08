@@ -6,7 +6,6 @@ from keras.layers import Dense, Concatenate
 from keras.optimizers import Adam
 import gym
 from sklearn.preprocessing import StandardScaler
-import pickle
 
 
 class ReplayBuffer:
@@ -192,4 +191,12 @@ plt.plot(np.arange(1, num_iteration + 1), avg_reward_set)
 legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
 plt.legend(['Reward', legend_2], loc=4)
 plt.show()
+plt.savefig('Rewards_pendulum')
+
+
+# Saving the networks weights
+agent.actor_network.save('actor_pendulum.h5')
+agent.critic_network.save('critic_pendulum.h5')
+agent.actor_network_target.save('actor_target_pendulum.h5')
+agent.critic_network_target.save('critic_target_pendulum.h5')
 
