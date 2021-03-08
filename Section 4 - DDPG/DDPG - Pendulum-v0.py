@@ -129,15 +129,15 @@ def get_scaler(env):
     return scaler
 
 
-def play_one_game(env, scaler):  # CHECK THIS (that agent gets updated)
+def play_one_game(env, scaler):
     observation = env.reset()
     done = False
     counter = 0
     total_reward = 0
     while not done:
-        a = agent.get_action(scaler.transform([observation]))  # CHECK THIS
+        a = agent.get_action(scaler.transform([observation]))
         prev_observation = observation
-        observation, reward, done, info = env.step([a])  # CHECK THIS
+        observation, reward, done, info = env.step([a])
         total_reward = total_reward + reward
         counter = counter + 1
         if counter >= 2000:
@@ -199,4 +199,18 @@ agent.actor_network.save('actor_pendulum.h5')
 agent.critic_network.save('critic_pendulum.h5')
 agent.actor_network_target.save('actor_target_pendulum.h5')
 agent.critic_network_target.save('critic_target_pendulum.h5')
+
+
+# Saving the video
+observation = env.reset()
+done = False
+total_reward = 0
+while not done:
+    env.render()
+    a = agent.get_action(scaler.transform([observation]))
+    prev_observation = observation
+    observation, reward, done, info = env.step([a])
+    total_reward = total_reward + reward
+env.close()
+print('total reward:' + '%.2f' % total_reward)
 
