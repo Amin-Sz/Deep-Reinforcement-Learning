@@ -132,7 +132,7 @@ def get_scaler(env):
     return scaler
 
 
-def play_one_game(env, scaler):
+def play_one_game(agent, env, scaler):
     observation = env.reset()
     done = False
     counter = 0
@@ -146,74 +146,82 @@ def play_one_game(env, scaler):
         if counter >= 2000:
             done = True
         agent.replay_buffer.add_to_mem(prev_observation, a, reward, observation, done)
-    return total_reward, counter
+    return agent, total_reward, counter
 
 
-# Creating the scaler, agent and environment
-env = gym.make('Pendulum-v0')
-scaler = get_scaler(env)
-max_buffer_size = int(1e6)
-agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.001, lr_policy=0.001, state_size=env.observation_space.shape[0],
-              action_size=env.action_space.shape[0], action_max=env.action_space.high[0],
-              action_min=env.action_space.low[0], Q_layers=[(512, 'relu'), (1, 'linear')],
-              policy_layers=[(512, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
+def main(training=False):
+    # Creating the scaler, agent and environment
+    env = gym.make('Pendulum-v0')
+    scaler = get_scaler(env)
+    max_buffer_size = int(1e6)
+    agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.001, lr_policy=0.001, state_size=env.observation_space.shape[0],
+                  action_size=env.action_space.shape[0], action_max=env.action_space.high[0],
+                  action_min=env.action_space.low[0], Q_layers=[(512, 'relu'), (1, 'linear')],
+                  policy_layers=[(512, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
+
+    if training:
+        # Training
+        num_iteration = 400
+        min_buffer_size = 10000
+        batch_size = 100
+        gamma = 0.99  # Discount factor
+        reward_set = []  # Stores rewards of each episode
+        avg_reward_set = []  # Stores the average of the last 100 rewards
+
+        for t in range(num_iteration):
+            agent, total_reward, counter = play_one_game(agent, env, scaler)
+
+            if agent.replay_buffer.mem_size >= min_buffer_size:
+                for j in range(counter):
+                    s, a, r, s2, done = agent.replay_buffer.sample(batch_size=batch_size)
+                    agent.update_networks(scaler.transform(s), a, r, scaler.transform(s2), done, gamma=gamma)
+                    agent.update_critic_target()
+                    agent.update_actor_target()
+
+            reward_set.append(total_reward)
+            avg_reward_set.append(np.mean(reward_set[-100:]))
+            if (t + 1) % 20 == 0 or t == 0:
+                print('iteration #' + str(t + 1), '--->', 'total reward:' + '%.2f' % total_reward + ', ',
+                      'averaged reward:' + '%.2f' % np.mean(reward_set[-100:]))
+
+        # Plotting the train results
+        axes = plt.axes()
+        axes.set_ylim([np.min(reward_set) - 400, np.max(reward_set) + 50])
+        plt.xlabel('Episode')
+        plt.ylabel('Reward')
+        plt.plot(np.arange(1, num_iteration + 1), reward_set)
+        plt.plot(np.arange(1, num_iteration + 1), avg_reward_set)
+        legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
+        plt.legend(['Reward', legend_2], loc=4)
+        plt.show()
+        plt.savefig('Section 4 - DDPG/Pendulum-v0/Rewards_pendulum')
+
+        # Saving the networks
+        agent.actor_network.save('Section 4 - DDPG/Pendulum-v0/actor_pendulum.h5')
+        agent.critic_network.save('Section 4 - DDPG/Pendulum-v0/critic_pendulum.h5')
+        agent.actor_network_target.save('Section 4 - DDPG/Pendulum-v0/actor_target_pendulum.h5')
+        agent.critic_network_target.save('Section 4 - DDPG/Pendulum-v0/critic_target_pendulum.h5')
+
+    else:
+        # Importing the trained networks
+        agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_pendulum.h5')
+        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_target_pendulum.h5')
+        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_pendulum.h5')
+        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_target_pendulum.h5')
+
+        # Showing the video
+        observation = env.reset()
+        done = False
+        total_reward = 0
+        while not done:
+            env.render()
+            a = agent.get_action(scaler.transform([observation]), training=False)
+            observation, reward, done, info = env.step([a])
+            total_reward = total_reward + reward
+        env.close()
+        print('total reward:' + '%.2f' % total_reward)
 
 
-# Training
-num_iteration = 250
-min_buffer_size = 10000
-batch_size = 100
-gamma = 0.99  # Discount factor
-reward_set = []  # Stores rewards of each episode
-avg_reward_set = []  # Stores the average of the last 100 rewards
-
-for t in range(num_iteration):
-    total_reward, counter = play_one_game(env, scaler)
-
-    if agent.replay_buffer.mem_size >= min_buffer_size:
-        for j in range(counter):
-            s, a, r, s2, done = agent.replay_buffer.sample(batch_size=batch_size)
-            agent.update_networks(scaler.transform(s), a, r, scaler.transform(s2), done, gamma=gamma)
-            agent.update_critic_target()
-            agent.update_actor_target()
-
-    reward_set.append(total_reward)
-    avg_reward_set.append(np.mean(reward_set[-100:]))
-    if t % 1 == 0:
-        print('iteration #' + str(t + 1), '--->', 'total reward:' + '%.2f' % total_reward + ', ',
-              'averaged reward:' + '%.2f' % np.mean(reward_set[-100:]))
-
-
-# Plotting the train results
-axes = plt.axes()
-axes.set_ylim([np.min(reward_set) - 400, np.max(reward_set) + 50])
-plt.xlabel('Episode')
-plt.ylabel('Reward')
-plt.plot(np.arange(1, num_iteration + 1), reward_set)
-plt.plot(np.arange(1, num_iteration + 1), avg_reward_set)
-legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
-plt.legend(['Reward', legend_2], loc=4)
-plt.show()
-plt.savefig('Rewards_pendulum')
-
-
-# Saving the networks
-agent.actor_network.save('actor_pendulum.h5')
-agent.critic_network.save('critic_pendulum.h5')
-agent.actor_network_target.save('actor_target_pendulum.h5')
-agent.critic_network_target.save('critic_target_pendulum.h5')
-
-
-# Showing the video
-observation = env.reset()
-done = False
-total_reward = 0
-while not done:
-    env.render()
-    a = agent.get_action(scaler.transform([observation]), training=False)
-    prev_observation = observation
-    observation, reward, done, info = env.step([a])
-    total_reward = total_reward + reward
-env.close()
-print('total reward:' + '%.2f' % total_reward)
+if __name__ == '__main__':
+    main(training=False)
 
