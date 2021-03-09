@@ -95,10 +95,13 @@ class Agent:
                              self.actor_network.weights[i] * (1 - self.tau))
         self.actor_network_target.set_weights(variables)
 
-    def get_action(self, scaled_state):
+    def get_action(self, scaled_state, training=True):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
-        action = self.actor_network.call(scaled_state)*self.action_max + tf.random.normal(shape=[self.action_size],
-                                                                                          mean=0.0, stddev=0.1)
+        if training:
+            action = self.actor_network.call(scaled_state)*self.action_max + tf.random.normal(shape=[self.action_size],
+                                                                                              mean=0.0, stddev=0.1)
+        else:
+            action = self.actor_network.call(scaled_state)*self.action_max
         action = tf.clip_by_value(action, clip_value_min=self.action_min, clip_value_max=self.action_max)
         action = tf.squeeze(action)
         return action
@@ -181,7 +184,7 @@ for t in range(num_iteration):
               'averaged reward:' + '%.2f' % np.mean(reward_set[-100:]))
 
 
-# Plotting the training results
+# Plotting the train results
 axes = plt.axes()
 axes.set_ylim([np.min(reward_set) - 400, np.max(reward_set) + 50])
 plt.xlabel('Episode')
@@ -194,7 +197,7 @@ plt.show()
 plt.savefig('Rewards_pendulum')
 
 
-# Saving the networks weights
+# Saving the networks
 agent.actor_network.save('actor_pendulum.h5')
 agent.critic_network.save('critic_pendulum.h5')
 agent.actor_network_target.save('actor_target_pendulum.h5')
@@ -207,7 +210,7 @@ done = False
 total_reward = 0
 while not done:
     env.render()
-    a = agent.get_action(scaler.transform([observation]))
+    a = agent.get_action(scaler.transform([observation]), training=False)
     prev_observation = observation
     observation, reward, done, info = env.step([a])
     total_reward = total_reward + reward
