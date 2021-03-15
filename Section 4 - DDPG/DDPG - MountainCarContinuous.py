@@ -59,24 +59,6 @@ class Agent:
         self.policy_network_target = ann(input_size=state_size, layers=policy_layers)
         self.policy_network_target.compile(optimizer=Adam(learning_rate=lr_policy))
 
-    '''def update_Q(self, scaled_state, y):
-        scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
-        scaled_state = tf.squeeze(scaled_state)
-        y = tf.convert_to_tensor(y, dtype=tf.float32)
-        mu = self.policy_network.predict(scaled_state)
-        x = Concatenate()([scaled_state, mu])
-        self.Q_network.fit(x, y, verbose=0)
-
-    def update_policy(self, scaled_state):
-        scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
-        scaled_state = tf.squeeze(scaled_state)
-        with tf.GradientTape() as tape:
-            mu = self.policy_network.predict(scaled_state)
-            x = Concatenate()([scaled_state, mu])  # CHECK THIS
-            loss = -tf.reduce_mean(self.Q_network.predict(x))  # CHECK THIS
-        gradients = tape.gradient(loss, self.policy_network.trainable_variables)
-        self.policy_network.optimizer.apply_gradients(zip(gradients, self.policy_network.trainable_variables))'''
-
     def update_networks(self, scaled_states, actions, rewards, scaled_next_states, dones, gamma):
         scaled_states = tf.convert_to_tensor(scaled_states, dtype=tf.float32)
         actions = tf.convert_to_tensor(actions.reshape(-1, 1), dtype=tf.float32)
@@ -113,7 +95,7 @@ class Agent:
     def get_action(self, scaled_state):
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
         action = self.policy_network.call(scaled_state) + tf.random.normal(shape=[self.action_size],
-                                                                           mean=0.0, stddev=0.05)*0
+                                                                           mean=0.0, stddev=0.1)
         action = tf.clip_by_value(action, clip_value_min=-1, clip_value_max=1)
         action = tf.squeeze(action)
         return action
@@ -170,12 +152,12 @@ env = gym.make('MountainCarContinuous-v0')
 scaler = get_scaler(env)
 max_buffer_size = int(1e6)
 agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.001, lr_policy=0.001, state_size=env.observation_space.shape[0],
-              action_size=env.action_space.shape[0], Q_layers=[(300, 'relu'), (1, 'linear')],
-              policy_layers=[(300, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
+              action_size=env.action_space.shape[0], Q_layers=[(512, 'relu'), (1, 'linear')],
+              policy_layers=[(512, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
 
 
 # Training
-num_iteration = 50
+num_iteration = 250
 min_buffer_size = 10000
 batch_size = 100
 gamma = 0.99  # Discount factor
