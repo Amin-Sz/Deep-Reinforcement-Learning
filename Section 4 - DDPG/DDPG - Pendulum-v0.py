@@ -182,7 +182,7 @@ def main(training=False):
             avg_reward_set.append(np.mean(reward_set[-100:]))
             if (t + 1) % 20 == 0 or t == 0:
                 print('iteration #' + str(t + 1), '--->', 'total reward:' + '%.2f' % total_reward + ', ',
-                      'averaged reward:' + '%.2f' % np.mean(reward_set[-100:]))
+                      'average score:' + '%.2f' % np.mean(reward_set[-100:]))
 
         # Plotting the train results
         axes = plt.axes()
