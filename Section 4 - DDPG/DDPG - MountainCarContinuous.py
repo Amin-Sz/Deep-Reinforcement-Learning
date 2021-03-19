@@ -99,7 +99,7 @@ class Agent:
         scaled_state = tf.convert_to_tensor(scaled_state, dtype=tf.float32)
         if training:
             action = self.actor_network.call(scaled_state)*self.action_max + tf.random.normal(shape=[self.action_size],
-                                                                                              mean=0.0, stddev=0.1)
+                                                                                              mean=0.0, stddev=0.01)
         else:
             action = self.actor_network.call(scaled_state)*self.action_max
         action = tf.clip_by_value(action, clip_value_min=self.action_min, clip_value_max=self.action_max)
@@ -154,16 +154,16 @@ def main(training=False):
     env = gym.make('MountainCarContinuous-v0')
     scaler = get_scaler(env)
     max_buffer_size = int(1e6)
-    agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.001, lr_policy=0.001, state_size=env.observation_space.shape[0],
+    agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.01, lr_policy=0.01, state_size=env.observation_space.shape[0],
                   action_size=env.action_space.shape[0], action_max=env.action_space.high[0],
-                  action_min=env.action_space.low[0], Q_layers=[(512, 'relu'), (1, 'linear')],
-                  policy_layers=[(512, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
+                  action_min=env.action_space.low[0], Q_layers=[(64, 'relu'), (1, 'linear')],
+                  policy_layers=[(64, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.99)
 
     if training:
         # Training
-        num_iteration = 400
+        num_iteration = 300
         min_buffer_size = 10000
-        batch_size = 100
+        batch_size = 32
         gamma = 0.99  # Discount factor
         reward_set = []  # Stores rewards of each episode
         avg_reward_set = []  # Stores the average of the last 100 rewards
@@ -172,7 +172,7 @@ def main(training=False):
             agent, total_reward, counter = play_one_game(agent, env, scaler)
 
             if agent.replay_buffer.mem_size >= min_buffer_size:
-                for j in range(counter):
+                for j in range(np.min([counter, 500])):
                     s, a, r, s2, done = agent.replay_buffer.sample(batch_size=batch_size)
                     agent.update_networks(scaler.transform(s), a, r, scaler.transform(s2), done, gamma=gamma)
                     agent.update_critic_target()
@@ -182,11 +182,11 @@ def main(training=False):
             avg_reward_set.append(np.mean(reward_set[-100:]))
             if (t + 1) % 20 == 0 or t == 0:
                 print('iteration #' + str(t + 1), '--->', 'total reward:' + '%.2f' % total_reward + ', ',
-                      'averaged reward:' + '%.2f' % np.mean(reward_set[-100:]))
+                      'average reward:' + '%.2f' % np.mean(reward_set[-100:]))
 
         # Plotting the train results
         axes = plt.axes()
-        axes.set_ylim([np.min(reward_set) - 400, np.max(reward_set) + 50])
+        axes.set_ylim([np.min(reward_set) - 100, np.max(reward_set) + 10])
         plt.xlabel('Episode')
         plt.ylabel('Reward')
         plt.plot(np.arange(1, num_iteration + 1), reward_set)
@@ -194,20 +194,20 @@ def main(training=False):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
         plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        # plt.savefig('Section 4 - DDPG/Pendulum-v0/Rewards_pendulum')
+        plt.savefig('Section 4 - DDPG/MountainCarContinuous/Rewards_MountainCarContinuous')
 
         # Saving the networks
-        '''agent.actor_network.save('Section 4 - DDPG/Pendulum-v0/actor_pendulum.h5')
-        agent.critic_network.save('Section 4 - DDPG/Pendulum-v0/critic_pendulum.h5')
-        agent.actor_network_target.save('Section 4 - DDPG/Pendulum-v0/actor_target_pendulum.h5')
-        agent.critic_network_target.save('Section 4 - DDPG/Pendulum-v0/critic_target_pendulum.h5')'''
+        agent.actor_network.save('Section 4 - DDPG/MountainCarContinuous/actor_MountainCar.h5')
+        agent.critic_network.save('Section 4 - DDPG/MountainCarContinuous/critic_MountainCar.h5')
+        agent.actor_network_target.save('Section 4 - DDPG/MountainCarContinuous/actor_target_MountainCar.h5')
+        agent.critic_network_target.save('Section 4 - DDPG/MountainCarContinuous/critic_target_MountainCar.h5')
 
     else:
         # Importing the trained networks
-        '''agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_pendulum.h5')
-        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_target_pendulum.h5')
-        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_pendulum.h5')
-        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_target_pendulum.h5')'''
+        agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_MountainCar.h5')
+        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_target_MountainCar.h5')
+        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_MountainCar.h5')
+        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_target_MountainCar.h5')
 
         # Showing the video
         observation = env.reset()
