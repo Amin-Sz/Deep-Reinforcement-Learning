@@ -9,7 +9,7 @@ class EvolutionStrategies:
         self.function = function
         self.lr = learning_rate
         self.noise_std = noise_std
-        self.parameters = np.random.randn(self.parameter_size)
+        self.parameters = np.random.randn(self.parameter_size)/np.sqrt(self.parameter_size)
 
     def train(self):
         epsilon_list = []
