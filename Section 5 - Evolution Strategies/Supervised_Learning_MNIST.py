@@ -111,18 +111,3 @@ if __name__ == '__main__':
     plt.legend(['Train', 'Test'], loc=4)
     plt.show()
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
