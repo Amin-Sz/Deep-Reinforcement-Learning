@@ -9,45 +9,45 @@ from sklearn.preprocessing import StandardScaler
 
 
 class ReplayBuffer:
-    def __init__(self, max_size):
-        self.max_size = max_size
-        self.mem_size = 0
-        self.states = []
-        self.actions = []
-        self.rewards = []
-        self.next_states = []
-        self.dones = []
+    def __init__(self, max_size, input_shape, n_actions):
+        self.mem_size = max_size
+        self.mem_cntr = 0
+        self.state_memory = np.zeros((self.mem_size, *input_shape))
+        self.new_state_memory = np.zeros((self.mem_size, *input_shape))
+        self.action_memory = np.zeros((self.mem_size, n_actions))
+        self.reward_memory = np.zeros(self.mem_size)
+        self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool)
 
-    def add_to_mem(self, state, action, reward, next_state, done):
-        if self.mem_size >= self.max_size:
-            self.mem_size = self.mem_size - 1
-            self.states = self.states[1:]
-            self.actions = self.actions[1:]
-            self.rewards = self.rewards[1:]
-            self.next_states = self.next_states[1:]
-            self.dones = self.dones[1:]
+    def add_to_mem(self, state, action, reward, state_, done):
+        index = self.mem_cntr % self.mem_size
 
-        self.mem_size = self.mem_size + 1
-        self.states.append(state)
-        self.actions.append(action)
-        self.rewards.append(reward)
-        self.next_states.append(next_state)
-        self.dones.append(done)
+        self.state_memory[index] = state
+        self.new_state_memory[index] = state_
+        self.action_memory[index] = action
+        self.reward_memory[index] = reward
+        self.terminal_memory[index] = done
+
+        self.mem_cntr += 1
 
     def sample(self, batch_size):
-        idx = np.random.choice(self.mem_size, size=batch_size, replace=False)
-        states = np.squeeze(np.array(self.states)[idx])
-        actions = np.squeeze(np.array(self.actions)[idx])
-        rewards = np.squeeze(np.array(self.rewards)[idx])
-        next_states = np.squeeze(np.array(self.next_states)[idx])
-        dones = np.squeeze(np.array(self.dones)[idx])
-        return states, actions, rewards, next_states, dones
+        max_mem = min(self.mem_cntr, self.mem_size)
+
+        batch = np.random.choice(max_mem, batch_size, replace=False)
+
+        states = self.state_memory[batch]
+        states_ = self.new_state_memory[batch]
+        actions = self.action_memory[batch]
+        rewards = self.reward_memory[batch]
+        dones = self.terminal_memory[batch]
+
+        return states, actions, rewards, states_, dones
 
 
 class Agent:
-    def __init__(self, mem_max_size, lr_Q, lr_policy, state_size, action_size, action_max, action_min, Q_layers,
+    def __init__(self, mem_size, lr_Q, lr_policy, state_size, action_size, action_max, action_min, Q_layers,
                  policy_layers, tau):
-        self.replay_buffer = ReplayBuffer(max_size=mem_max_size)
+        self.replay_buffer = ReplayBuffer(max_size=mem_size, input_shape=state_size, n_actions=action_size)
+        state_size = state_size[0]
         self.tau = tau
         self.action_size = action_size
         self.action_min = action_min
@@ -153,16 +153,15 @@ def main(training=False):
     # Creating the scaler, agent and environment
     env = gym.make('MountainCarContinuous-v0')
     scaler = get_scaler(env)
-    max_buffer_size = int(1e6)
-    agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.01, lr_policy=0.01, state_size=env.observation_space.shape[0],
+    buffer_size = int(1e5)
+    agent = Agent(mem_size=buffer_size, lr_Q=0.005, lr_policy=0.005, state_size=env.observation_space.shape,
                   action_size=env.action_space.shape[0], action_max=env.action_space.high[0],
                   action_min=env.action_space.low[0], Q_layers=[(64, 'relu'), (1, 'linear')],
-                  policy_layers=[(64, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.99)
+                  policy_layers=[(64, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
 
     if training:
         # Training
         num_iteration = 300
-        min_buffer_size = 10000
         batch_size = 32
         gamma = 0.99  # Discount factor
         reward_set = []  # Stores rewards of each episode
@@ -171,12 +170,11 @@ def main(training=False):
         for t in range(num_iteration):
             agent, total_reward, counter = play_one_game(agent, env, scaler)
 
-            if agent.replay_buffer.mem_size >= min_buffer_size:
-                for j in range(np.min([counter, 500])):
-                    s, a, r, s2, done = agent.replay_buffer.sample(batch_size=batch_size)
-                    agent.update_networks(scaler.transform(s), a, r, scaler.transform(s2), done, gamma=gamma)
-                    agent.update_critic_target()
-                    agent.update_actor_target()
+            for j in range(counter):
+                s, a, r, s2, done = agent.replay_buffer.sample(batch_size=batch_size)
+                agent.update_networks(scaler.transform(s), a, r, scaler.transform(s2), done, gamma=gamma)
+                agent.update_critic_target()
+                agent.update_actor_target()
 
             reward_set.append(total_reward)
             avg_reward_set.append(np.mean(reward_set[-100:]))

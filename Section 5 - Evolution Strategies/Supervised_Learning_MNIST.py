@@ -110,4 +110,5 @@ if __name__ == '__main__':
     plt.plot(np.arange(1, n_iteration + 1), reward_test)
     plt.legend(['Train', 'Test'], loc=4)
     plt.show()
+    plt.savefig('Section 5 - Evolution Strategies/Supervised_Learning_Accuracy')
 
