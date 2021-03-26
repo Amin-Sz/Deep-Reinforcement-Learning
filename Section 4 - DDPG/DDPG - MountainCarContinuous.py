@@ -9,44 +9,38 @@ from sklearn.preprocessing import StandardScaler
 
 
 class ReplayBuffer:
-    def __init__(self, max_size, input_shape, n_actions):
-        self.mem_size = max_size
-        self.mem_cntr = 0
-        self.state_memory = np.zeros((self.mem_size, *input_shape))
-        self.new_state_memory = np.zeros((self.mem_size, *input_shape))
-        self.action_memory = np.zeros((self.mem_size, n_actions))
-        self.reward_memory = np.zeros(self.mem_size)
-        self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool)
+    def __init__(self, mem_size, state_size, action_size):
+        self.size = mem_size
+        self.counter = 0
+        self.states = np.zeros((mem_size, state_size))
+        self.states_new = np.zeros((mem_size, state_size))
+        self.actions = np.zeros((mem_size, action_size))
+        self.rewards = np.zeros((mem_size, 1))
+        self.dones = np.zeros((mem_size, 1), dtype=bool)
 
-    def add_to_mem(self, state, action, reward, state_, done):
-        index = self.mem_cntr % self.mem_size
-
-        self.state_memory[index] = state
-        self.new_state_memory[index] = state_
-        self.action_memory[index] = action
-        self.reward_memory[index] = reward
-        self.terminal_memory[index] = done
-
-        self.mem_cntr += 1
+    def add_to_mem(self, state, action, reward, state_new, done):
+        index = self.counter % self.size
+        self.states[index, :] = state
+        self.actions[index, :] = action
+        self.rewards[index] = reward
+        self.states_new[index, :] = state_new
+        self.dones[index] = done
+        self.counter = self.counter + 1
 
     def sample(self, batch_size):
-        max_mem = min(self.mem_cntr, self.mem_size)
-
-        batch = np.random.choice(max_mem, batch_size, replace=False)
-
-        states = self.state_memory[batch]
-        states_ = self.new_state_memory[batch]
-        actions = self.action_memory[batch]
-        rewards = self.reward_memory[batch]
-        dones = self.terminal_memory[batch]
-
-        return states, actions, rewards, states_, dones
+        indices = np.random.choice(np.min([self.size, self.counter]), size=batch_size, replace=False)
+        states = self.states[indices]
+        actions = self.actions[indices]
+        rewards = self.rewards[indices]
+        states_new = self.states_new[indices]
+        dones = self.dones[indices]
+        return states, actions, rewards, states_new, dones
 
 
 class Agent:
     def __init__(self, mem_size, lr_Q, lr_policy, state_size, action_size, action_max, action_min, Q_layers,
                  policy_layers, tau):
-        self.replay_buffer = ReplayBuffer(max_size=mem_size, input_shape=state_size, n_actions=action_size)
+        self.replay_buffer = ReplayBuffer(mem_size=mem_size, state_size=state_size[0], action_size=action_size)
         state_size = state_size[0]
         self.tau = tau
         self.action_size = action_size
@@ -64,14 +58,14 @@ class Agent:
 
     def update_networks(self, scaled_states, actions, rewards, scaled_next_states, dones, gamma):
         scaled_states = tf.convert_to_tensor(scaled_states, dtype=tf.float32)
-        actions = tf.convert_to_tensor(actions.reshape(-1, 1), dtype=tf.float32)
+        actions = tf.convert_to_tensor(actions, dtype=tf.float32)
         rewards = tf.convert_to_tensor(rewards, dtype=tf.float32)
         scaled_next_states = tf.convert_to_tensor(scaled_next_states, dtype=tf.float32)
-        dones = np.array(dones)
         dones = dones.astype(int)
 
         X_Q = Concatenate()([scaled_states, actions])
         Y_Q = rewards + gamma * (1 - dones) * self.get_critic_target(scaled_next_states)
+        # or Y_Q = rewards + gamma * (1 - dones) * self.get_critic_target(scaled_next_states).numpy().reshape(-1, 1)
         self.critic_network.fit(X_Q, Y_Q, verbose=0)
 
         with tf.GradientTape() as tape:
@@ -109,7 +103,7 @@ class Agent:
     def get_critic_target(self, scaled_state):
         mu = self.actor_network_target.call(scaled_state)
         x = Concatenate()([scaled_state, mu])
-        return tf.squeeze(self.critic_network_target.call(x))
+        return self.critic_network_target.call(x)
 
 
 def ann(input_size, layers=[(10, 'relu')]):
@@ -161,7 +155,7 @@ def main(training=False):
 
     if training:
         # Training
-        num_iteration = 300
+        num_iteration = 250
         batch_size = 32
         gamma = 0.99  # Discount factor
         reward_set = []  # Stores rewards of each episode
@@ -184,7 +178,7 @@ def main(training=False):
 
         # Plotting the train results
         axes = plt.axes()
-        axes.set_ylim([np.min(reward_set) - 100, np.max(reward_set) + 10])
+        axes.set_ylim([np.min(reward_set) - 40, np.max(reward_set) + 10])
         plt.xlabel('Episode')
         plt.ylabel('Reward')
         plt.plot(np.arange(1, num_iteration + 1), reward_set)
