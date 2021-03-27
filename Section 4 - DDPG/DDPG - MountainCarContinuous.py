@@ -40,8 +40,7 @@ class ReplayBuffer:
 class Agent:
     def __init__(self, mem_size, lr_Q, lr_policy, state_size, action_size, action_max, action_min, Q_layers,
                  policy_layers, tau):
-        self.replay_buffer = ReplayBuffer(mem_size=mem_size, state_size=state_size[0], action_size=action_size)
-        state_size = state_size[0]
+        self.replay_buffer = ReplayBuffer(mem_size=mem_size, state_size=state_size, action_size=action_size)
         self.tau = tau
         self.action_size = action_size
         self.action_min = action_min
@@ -148,15 +147,15 @@ def main(training=False):
     env = gym.make('MountainCarContinuous-v0')
     scaler = get_scaler(env)
     buffer_size = int(1e5)
-    agent = Agent(mem_size=buffer_size, lr_Q=0.005, lr_policy=0.005, state_size=env.observation_space.shape,
+    agent = Agent(mem_size=buffer_size, lr_Q=0.005, lr_policy=0.005, state_size=env.observation_space.shape[0],
                   action_size=env.action_space.shape[0], action_max=env.action_space.high[0],
-                  action_min=env.action_space.low[0], Q_layers=[(64, 'relu'), (1, 'linear')],
-                  policy_layers=[(64, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
+                  action_min=env.action_space.low[0], Q_layers=[(256, 'relu'), (1, 'linear')],
+                  policy_layers=[(256, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
 
     if training:
         # Training
-        num_iteration = 250
-        batch_size = 32
+        num_iteration = 300
+        batch_size = 64
         gamma = 0.99  # Discount factor
         reward_set = []  # Stores rewards of each episode
         avg_reward_set = []  # Stores the average of the last 100 rewards
