@@ -9,45 +9,38 @@ from sklearn.preprocessing import StandardScaler
 
 
 class ReplayBuffer:
-    def __init__(self, max_size):
-        self.max_size = max_size
-        self.mem_size = 0
-        self.states = []
-        self.actions = []
-        self.rewards = []
-        self.next_states = []
-        self.dones = []
+    def __init__(self, mem_size, state_size, action_size):
+        self.size = mem_size
+        self.counter = 0
+        self.states = np.zeros((mem_size, state_size))
+        self.states_new = np.zeros((mem_size, state_size))
+        self.actions = np.zeros((mem_size, action_size))
+        self.rewards = np.zeros((mem_size, 1))
+        self.dones = np.zeros((mem_size, 1), dtype=bool)
 
-    def add_to_mem(self, state, action, reward, next_state, done):
-        if self.mem_size >= self.max_size:
-            self.mem_size = self.mem_size - 1
-            self.states = self.states[1:]
-            self.actions = self.actions[1:]
-            self.rewards = self.rewards[1:]
-            self.next_states = self.next_states[1:]
-            self.dones = self.dones[1:]
-
-        self.mem_size = self.mem_size + 1
-        self.states.append(state)
-        self.actions.append(action)
-        self.rewards.append(reward)
-        self.next_states.append(next_state)
-        self.dones.append(done)
+    def add_to_mem(self, state, action, reward, state_new, done):
+        index = self.counter % self.size
+        self.states[index, :] = state
+        self.actions[index, :] = action
+        self.rewards[index] = reward
+        self.states_new[index, :] = state_new
+        self.dones[index] = done
+        self.counter = self.counter + 1
 
     def sample(self, batch_size):
-        idx = np.random.choice(self.mem_size, size=batch_size, replace=False)
-        states = np.squeeze(np.array(self.states)[idx])
-        actions = np.squeeze(np.array(self.actions)[idx])
-        rewards = np.squeeze(np.array(self.rewards)[idx])
-        next_states = np.squeeze(np.array(self.next_states)[idx])
-        dones = np.squeeze(np.array(self.dones)[idx])
-        return states, actions, rewards, next_states, dones
+        indices = np.random.choice(np.min([self.size, self.counter]), size=batch_size, replace=False)
+        states = self.states[indices]
+        actions = self.actions[indices]
+        rewards = self.rewards[indices]
+        states_new = self.states_new[indices]
+        dones = self.dones[indices]
+        return states, actions, rewards, states_new, dones
 
 
 class Agent:
-    def __init__(self, mem_max_size, lr_Q, lr_policy, state_size, action_size, action_max, action_min, Q_layers,
+    def __init__(self, mem_size, lr_Q, lr_policy, state_size, action_size, action_max, action_min, Q_layers,
                  policy_layers, tau):
-        self.replay_buffer = ReplayBuffer(max_size=mem_max_size)
+        self.replay_buffer = ReplayBuffer(mem_size=mem_size, state_size=state_size, action_size=action_size)
         self.tau = tau
         self.action_size = action_size
         self.action_min = action_min
@@ -64,14 +57,14 @@ class Agent:
 
     def update_networks(self, scaled_states, actions, rewards, scaled_next_states, dones, gamma):
         scaled_states = tf.convert_to_tensor(scaled_states, dtype=tf.float32)
-        actions = tf.convert_to_tensor(actions.reshape(-1, 1), dtype=tf.float32)
+        actions = tf.convert_to_tensor(actions, dtype=tf.float32)
         rewards = tf.convert_to_tensor(rewards, dtype=tf.float32)
         scaled_next_states = tf.convert_to_tensor(scaled_next_states, dtype=tf.float32)
-        dones = np.array(dones)
         dones = dones.astype(int)
 
         X_Q = Concatenate()([scaled_states, actions])
         Y_Q = rewards + gamma * (1 - dones) * self.get_critic_target(scaled_next_states)
+        # or Y_Q = rewards + gamma * (1 - dones) * self.get_critic_target(scaled_next_states).numpy().reshape(-1, 1)
         self.critic_network.fit(X_Q, Y_Q, verbose=0)
 
         with tf.GradientTape() as tape:
@@ -109,7 +102,7 @@ class Agent:
     def get_critic_target(self, scaled_state):
         mu = self.actor_network_target.call(scaled_state)
         x = Concatenate()([scaled_state, mu])
-        return tf.squeeze(self.critic_network_target.call(x))
+        return self.critic_network_target.call(x)
 
 
 def ann(input_size, layers=[(10, 'relu')]):
@@ -153,8 +146,8 @@ def main(training=False):
     # Creating the scaler, agent and environment
     env = gym.make('Pendulum-v0')
     scaler = get_scaler(env)
-    max_buffer_size = int(1e6)
-    agent = Agent(mem_max_size=max_buffer_size, lr_Q=0.001, lr_policy=0.001, state_size=env.observation_space.shape[0],
+    buffer_size = int(1e6)
+    agent = Agent(mem_size=buffer_size, lr_Q=0.001, lr_policy=0.001, state_size=env.observation_space.shape[0],
                   action_size=env.action_space.shape[0], action_max=env.action_space.high[0],
                   action_min=env.action_space.low[0], Q_layers=[(512, 'relu'), (1, 'linear')],
                   policy_layers=[(512, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
@@ -162,7 +155,6 @@ def main(training=False):
     if training:
         # Training
         num_iteration = 400
-        min_buffer_size = 10000
         batch_size = 100
         gamma = 0.99  # Discount factor
         reward_set = []  # Stores rewards of each episode
@@ -171,12 +163,11 @@ def main(training=False):
         for t in range(num_iteration):
             agent, total_reward, counter = play_one_game(agent, env, scaler)
 
-            if agent.replay_buffer.mem_size >= min_buffer_size:
-                for j in range(counter):
-                    s, a, r, s2, done = agent.replay_buffer.sample(batch_size=batch_size)
-                    agent.update_networks(scaler.transform(s), a, r, scaler.transform(s2), done, gamma=gamma)
-                    agent.update_critic_target()
-                    agent.update_actor_target()
+            for j in range(counter):
+                s, a, r, s2, done = agent.replay_buffer.sample(batch_size=batch_size)
+                agent.update_networks(scaler.transform(s), a, r, scaler.transform(s2), done, gamma=gamma)
+                agent.update_critic_target()
+                agent.update_actor_target()
 
             reward_set.append(total_reward)
             avg_reward_set.append(np.mean(reward_set[-100:]))

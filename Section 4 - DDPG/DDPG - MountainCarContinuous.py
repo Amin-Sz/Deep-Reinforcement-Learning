@@ -155,7 +155,7 @@ def main(training=False):
     if training:
         # Training
         num_iteration = 300
-        batch_size = 64
+        batch_size = 64  # Increase this
         gamma = 0.99  # Discount factor
         reward_set = []  # Stores rewards of each episode
         avg_reward_set = []  # Stores the average of the last 100 rewards
@@ -214,5 +214,5 @@ def main(training=False):
 
 
 if __name__ == '__main__':
-    main(training=True)
+    main(training=False)
 
