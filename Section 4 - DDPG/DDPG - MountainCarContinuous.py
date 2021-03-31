@@ -136,8 +136,10 @@ def play_one_game(agent, env, scaler):
         observation, reward, done, info = env.step([a])
         total_reward = total_reward + reward
         counter = counter + 1
-        if counter >= 2000:
-            done = True
+        if counter >= 999:
+            done = False
+            agent.replay_buffer.add_to_mem(prev_observation, a, reward, observation, done)
+            break
         agent.replay_buffer.add_to_mem(prev_observation, a, reward, observation, done)
     return agent, total_reward, counter
 
@@ -147,15 +149,15 @@ def main(training=False):
     env = gym.make('MountainCarContinuous-v0')
     scaler = get_scaler(env)
     buffer_size = int(1e5)
-    agent = Agent(mem_size=buffer_size, lr_Q=0.005, lr_policy=0.005, state_size=env.observation_space.shape[0],
+    agent = Agent(mem_size=buffer_size, lr_Q=0.005, lr_policy=0.0001, state_size=env.observation_space.shape[0],
                   action_size=env.action_space.shape[0], action_max=env.action_space.high[0],
-                  action_min=env.action_space.low[0], Q_layers=[(256, 'relu'), (1, 'linear')],
-                  policy_layers=[(256, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
+                  action_min=env.action_space.low[0], Q_layers=[(512, 'relu'), (1, 'linear')],
+                  policy_layers=[(512, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
 
     if training:
         # Training
-        num_iteration = 300
-        batch_size = 64  # Increase this
+        num_iteration = 250
+        batch_size = 100
         gamma = 0.99  # Discount factor
         reward_set = []  # Stores rewards of each episode
         avg_reward_set = []  # Stores the average of the last 100 rewards
@@ -195,10 +197,10 @@ def main(training=False):
 
     else:
         # Importing the trained networks
-        agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_MountainCar.h5')
-        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_target_MountainCar.h5')
-        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_MountainCar.h5')
-        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_target_MountainCar.h5')
+        agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/MountainCarContinuous/actor_MountainCar.h5')
+        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/MountainCarContinuous/actor_target_MountainCar.h5')
+        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/MountainCarContinuous/critic_MountainCar.h5')
+        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/MountainCarContinuous/critic_target_MountainCar.h5')
 
         # Showing the video
         observation = env.reset()
