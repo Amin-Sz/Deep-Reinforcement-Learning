@@ -201,16 +201,17 @@ def main(training=False):
         agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/critic_target_LunarLander.h5')
 
         # Showing the video
-        observation = env.reset()
-        done = False
-        total_reward = 0
-        while not done:
-            env.render()
-            a = agent.get_action(scaler.transform([observation]), training=False)
-            observation, reward, done, info = env.step(a)
-            total_reward = total_reward + reward
+        for _ in range(10):
+            observation = env.reset()
+            done = False
+            total_reward = 0
+            while not done:
+                env.render()
+                a = agent.get_action(scaler.transform([observation]), training=False)
+                observation, reward, done, info = env.step(a)
+                total_reward = total_reward + reward
+            print('total reward:' + '%.2f' % total_reward)
         env.close()
-        print('total reward:' + '%.2f' % total_reward)
 
 
 if __name__ == '__main__':
