@@ -145,15 +145,15 @@ def main(training=False):
     env = gym.make('LunarLanderContinuous-v2')
     scaler = get_scaler(env)
     buffer_size = int(1e6)
-    agent = Agent(mem_size=buffer_size, lr_Q=0.001, lr_policy=0.001, state_size=env.observation_space.shape[0],
+    agent = Agent(mem_size=buffer_size, lr_Q=0.0001, lr_policy=0.0001, state_size=env.observation_space.shape[0],
                   action_size=env.action_space.shape[0], action_max=env.action_space.high[0],
-                  action_min=env.action_space.low[0], Q_layers=[(512, 'relu'), (256, 'relu'), (1, 'linear')],
-                  policy_layers=[(512, 'relu'), (256, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
+                  action_min=env.action_space.low[0], Q_layers=[(512, 'relu'), (1, 'linear')],
+                  policy_layers=[(512, 'relu'), (env.action_space.shape[0], 'tanh')], tau=0.995)
 
     if training:
         # Training
-        num_iteration = 400
-        batch_size = 100
+        num_iteration = 5000
+        batch_size = 128
         gamma = 0.99  # Discount factor
         reward_set = []  # Stores rewards of each episode
         avg_reward_set = []  # Stores the average of the last 100 rewards
@@ -170,7 +170,7 @@ def main(training=False):
 
             reward_set.append(total_reward)
             avg_reward_set.append(np.mean(reward_set[-100:]))
-            if (t + 1) % 20 == 0 or t == 0:
+            if (t + 1) % 100 == 0 or t == 0:
                 print('iteration #' + str(t + 1), '--->', 'total reward:' + '%.2f' % total_reward + ', ',
                       'average score:' + '%.2f' % np.mean(reward_set[-100:]))
 
@@ -181,23 +181,24 @@ def main(training=False):
         plt.ylabel('Reward')
         plt.plot(np.arange(1, num_iteration + 1), reward_set)
         plt.plot(np.arange(1, num_iteration + 1), avg_reward_set)
+        plt.plot(np.ones(num_iteration)*200, 'r-')
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
-        plt.legend(['Reward', legend_2], loc=4)
+        plt.legend(['Reward', legend_2, 'Reward of 200'], loc=4)
         plt.show()
-        plt.savefig('Section 4 - DDPG/LunarLanderContinuous-v2/Rewards_pendulum')
+        plt.savefig('Section 4 - DDPG/LunarLanderContinuous-v2/Rewards_LunarLander')
 
         # Saving the networks
-        agent.actor_network.save('Section 4 - DDPG/LunarLanderContinuous-v2/actor_pendulum.h5')
-        agent.critic_network.save('Section 4 - DDPG/LunarLanderContinuous-v2/critic_pendulum.h5')
-        agent.actor_network_target.save('Section 4 - DDPG/LunarLanderContinuous-v2/actor_target_pendulum.h5')
-        agent.critic_network_target.save('Section 4 - DDPG/LunarLanderContinuous-v2/critic_target_pendulum.h5')
+        agent.actor_network.save('Section 4 - DDPG/LunarLanderContinuous-v2/actor_LunarLander.h5')
+        agent.critic_network.save('Section 4 - DDPG/LunarLanderContinuous-v2/critic_LunarLander.h5')
+        agent.actor_network_target.save('Section 4 - DDPG/LunarLanderContinuous-v2/actor_target_LunarLander.h5')
+        agent.critic_network_target.save('Section 4 - DDPG/LunarLanderContinuous-v2/critic_target_LunarLander.h5')
 
     else:
         # Importing the trained networks
-        agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/actor_pendulum.h5')
-        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/actor_target_pendulum.h5')
-        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/critic_pendulum.h5')
-        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/critic_target_pendulum.h5')
+        agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/actor_LunarLander.h5')
+        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/actor_target_LunarLander.h5')
+        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/critic_LunarLander.h5')
+        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/critic_target_LunarLander.h5')
 
         # Showing the video
         observation = env.reset()
