@@ -92,7 +92,8 @@ class ActorNetwork(nn.Module):
 
 
 class Agent:
-    def __init__(self, env, warm_up=1000, mem_size=1e6, batch_size=100, update_interval=2, gamma=0.99, tau=5e-3):
+    def __init__(self, env, warm_up=1000, mem_size=1e6, batch_size=100, update_interval=2, gamma=0.99, tau=5e-3,
+                 action_noise=0.1):
         self.env = env
         self.state_dim = env.observation_space.shape[0]
         self.action_dim = env.action_space.shape[0]
@@ -104,6 +105,7 @@ class Agent:
         self.update_interval = update_interval
         self.gamma = gamma
         self.tau = tau
+        self.action_noise = action_noise
         self.critic_update_counter = 0
         self.play_counter = 0
 
@@ -131,12 +133,12 @@ class Agent:
 
     def get_action(self, state, training=True):
         state = T.tensor([state], dtype=T.float).to(self.actor.device)
-        if self.play_counter <= self.warm_up:
+        if self.play_counter <= self.warm_up and training:
             action = self.env.action_space.sample()
         else:
             action = self.actor.forward(state)
             if training:
-                action += 0.1 * T.randn(action.size()).to(self.actor.device)
+                action += self.action_noise * T.randn(action.size()).to(self.actor.device)
             action = T.clamp(action, min=self.action_min, max=self.action_max)
             action = action.cpu().detach().numpy()
 
@@ -152,12 +154,13 @@ class Agent:
         dones = T.tensor(dones).to(self.actor.device)
 
         target_noise = T.clamp(0.2*T.randn(actions.size()), min=-0.5, max=0.5)
-        target_actions = self.target_actor.forward(new_states) + target_noise
+        target_actions = self.target_actor.forward(new_states) + target_noise.to(self.actor.device)
+        target_actions = T.clamp(target_actions, min=self.action_min, max=self.action_max)
         target_Q1 = self.target_critic_1.forward(new_states, target_actions)
         target_Q2 = self.target_critic_2.forward(new_states, target_actions)
-        target_critic_value = T.min(T.cat((target_Q1, target_Q2), dim=1), dim=1)[0]
+        target_critic_value = T.min(target_Q1, target_Q2)
         target_critic_value[dones] = 0.0
-        target_critic_value = target_critic_value.view(-1)
+        # target_critic_value = target_critic_value.view(-1)  # maybe unnecessary because of rewards shape
         target = rewards + self.gamma*target_critic_value
         target = target.view(self.batch_size, 1)
 
@@ -174,17 +177,38 @@ class Agent:
         critic_2_loss.backward()
         self.critic_2.optimizer.step()
 
-        if self.play_counter % self.update_interval == 0:
+        self.critic_update_counter += 1
+
+        if self.critic_update_counter % self.update_interval == 0:
             self.actor.optimizer.zero_grad()
             actor_loss = self.critic_1.forward(states, self.actor.forward(states))
-            actor_loss = T.mean(actor_loss)
+            actor_loss = -T.mean(actor_loss)
             actor_loss.backward()
             self.actor.optimizer.step()
 
             self.update_target_networks()
 
+    def update_target_networks(self):
+        critic_1_params = dict(self.critic_1.named_parameters())
+        target_critic_1_params = dict(self.target_critic_1.named_parameters())
+        for name in target_critic_1_params:
+            target_critic_1_params[name] = self.tau*critic_1_params[name].clone() + \
+                                           (1 - self.tau)*target_critic_1_params[name].clone()
+        self.target_critic_1.load_state_dict(target_critic_1_params)
 
+        critic_2_params = dict(self.critic_2.named_parameters())
+        target_critic_2_params = dict(self.target_critic_2.named_parameters())
+        for name in target_critic_2_params:
+            target_critic_2_params[name] = self.tau*critic_2_params[name].clone() + \
+                                           (1 - self.tau)*target_critic_2_params[name].clone()
+        self.target_critic_2.load_state_dict(target_critic_2_params)
 
+        actor_params = dict(self.actor.named_parameters())
+        target_actor_params = dict(self.target_actor.named_parameters())
+        for name in target_actor_params:
+            target_actor_params[name] = self.tau*actor_params[name].clone() + \
+                                        (1 - self.tau)*target_actor_params[name].clone()
+        self.target_actor.load_state_dict(target_actor_params)
 
 
 
