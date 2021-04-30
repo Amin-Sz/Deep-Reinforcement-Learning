@@ -87,12 +87,12 @@ class ActorNetwork(nn.Module):
         mu = self.fc2(mu)
         mu = F.relu(mu)
         mu = self.fc3(mu)
-        mu = self.action_max * F.tanh(mu)
+        mu = self.action_max * T.tanh(mu)
         return mu
 
 
 class Agent:
-    def __init__(self, env, warm_up=1000, mem_size=1e6, batch_size=100, update_interval=2, gamma=0.99, tau=5e-3,
+    def __init__(self, env, warm_up=1000, mem_size=1000000, batch_size=100, update_interval=2, gamma=0.99, tau=5e-3,
                  action_noise=0.1):
         self.env = env
         self.state_dim = env.observation_space.shape[0]
@@ -114,9 +114,11 @@ class Agent:
         self.critic_2 = CriticNetwork(state_dim=self.state_dim, action_dim=self.action_dim)
         self.actor = ActorNetwork(state_dim=self.state_dim, action_dim=self.action_dim, action_max=self.action_max)
 
-        self.target_critic_1 = self.critic_1
-        self.target_critic_2 = self.critic_2
-        self.target_actor = self.actor
+        self.target_critic_1 = CriticNetwork(state_dim=self.state_dim, action_dim=self.action_dim)
+        self.target_critic_2 = CriticNetwork(state_dim=self.state_dim, action_dim=self.action_dim)
+        self.target_actor = ActorNetwork(state_dim=self.state_dim, action_dim=self.action_dim,
+                                         action_max=self.action_max)
+        self.update_target_networks(tau=1)
 
     def initialize_buffer(self):
         while self.play_counter <= self.warm_up:
@@ -140,7 +142,7 @@ class Agent:
             if training:
                 action += self.action_noise * T.randn(action.size()).to(self.actor.device)
             action = T.clamp(action, min=self.action_min, max=self.action_max)
-            action = action.cpu().detach().numpy()
+            action = action.cpu().detach().numpy()[0]
 
         self.play_counter += 1
         return action
@@ -162,19 +164,19 @@ class Agent:
         target_critic_value[dones] = 0.0
         # target_critic_value = target_critic_value.view(-1)  # maybe unnecessary because of rewards shape
         target = rewards + self.gamma*target_critic_value
-        target = target.view(self.batch_size, 1)
 
         critic_1_value = self.critic_1.forward(states, actions)
         critic_2_value = self.critic_2.forward(states, actions)
 
         self.critic_1.optimizer.zero_grad()
         critic_1_loss = F.mse_loss(target, critic_1_value)
-        critic_1_loss.backward()
-        self.critic_1.optimizer.step()
 
         self.critic_2.optimizer.zero_grad()
         critic_2_loss = F.mse_loss(target, critic_2_value)
-        critic_2_loss.backward()
+
+        critic_loss = critic_1_loss + critic_2_loss
+        critic_loss.backward()
+        self.critic_1.optimizer.step()
         self.critic_2.optimizer.step()
 
         self.critic_update_counter += 1
@@ -188,41 +190,113 @@ class Agent:
 
             self.update_target_networks()
 
-    def update_target_networks(self):
+    def update_target_networks(self, tau=None):
+        if tau is None:
+            tau = self.tau
+
         critic_1_params = dict(self.critic_1.named_parameters())
         target_critic_1_params = dict(self.target_critic_1.named_parameters())
         for name in target_critic_1_params:
-            target_critic_1_params[name] = self.tau*critic_1_params[name].clone() + \
-                                           (1 - self.tau)*target_critic_1_params[name].clone()
+            target_critic_1_params[name] = tau*critic_1_params[name].clone() + \
+                                           (1 - tau)*target_critic_1_params[name].clone()
         self.target_critic_1.load_state_dict(target_critic_1_params)
 
         critic_2_params = dict(self.critic_2.named_parameters())
         target_critic_2_params = dict(self.target_critic_2.named_parameters())
         for name in target_critic_2_params:
-            target_critic_2_params[name] = self.tau*critic_2_params[name].clone() + \
-                                           (1 - self.tau)*target_critic_2_params[name].clone()
+            target_critic_2_params[name] = tau*critic_2_params[name].clone() + \
+                                           (1 - tau)*target_critic_2_params[name].clone()
         self.target_critic_2.load_state_dict(target_critic_2_params)
 
         actor_params = dict(self.actor.named_parameters())
         target_actor_params = dict(self.target_actor.named_parameters())
         for name in target_actor_params:
-            target_actor_params[name] = self.tau*actor_params[name].clone() + \
-                                        (1 - self.tau)*target_actor_params[name].clone()
+            target_actor_params[name] = tau*actor_params[name].clone() + \
+                                        (1 - tau)*target_actor_params[name].clone()
         self.target_actor.load_state_dict(target_actor_params)
 
 
+def play_one_game(agent, env):
+    total_reward = 0
+    observation = env.reset()
+    done = False
+    while not done:
+        a = agent.get_action(observation)
+        prev_observation = observation
+        observation, reward, done, info = env.step(a)
+        total_reward += reward
+
+        agent.replay_buffer.add_to_mem(prev_observation, a, reward, observation, done)
+
+        if agent.replay_buffer.counter > agent.batch_size:
+            agent.update()
+
+    return agent, total_reward
 
 
+def main(training=True):
+    env = gym.make('Pendulum-v0')
+    gamma = 0.99
+    tau = 5e-3
+    warm_up = 1000
+    agent = Agent(env=env, warm_up=warm_up, gamma=gamma, tau=tau)  # change values of hyperparameters if you want
+
+    if training:
+        reward_set = []
+        avg_score_set = []
+        n_iteration = 1500
+        for t in range(n_iteration):
+            agent, total_reward = play_one_game(agent, env)
+
+            reward_set.append(total_reward)
+            avg_score_set.append(np.mean(reward_set[-100:]))
+            print('iteration #' + str(t + 1) + ' -----> ' +
+                  'total reward:' + '%.2f' % total_reward +
+                  ', average score:' + '%.2f' % np.mean(reward_set[-100:]))
+
+        # Plotting the results
+        axes = plt.axes()
+        axes.set_ylim([np.min(reward_set) - 200, np.max(reward_set) + 50])
+        plt.xlabel('Episode')
+        plt.ylabel('Reward')
+        plt.plot(np.arange(1, n_iteration + 1), reward_set)
+        plt.plot(np.arange(1, n_iteration + 1), avg_score_set)
+        legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
+        plt.legend(['Reward', legend_2], loc=4)
+        plt.show()
+        plt.savefig('Section 6 - TD3/Pendulum-v0/Rewards_pendulum')
+
+        # Saving the networks
+        T.save(agent.critic_1.state_dict(), 'Section 6 - TD3/Pendulum-v0/critic_1')
+        T.save(agent.critic_2.state_dict(), 'Section 6 - TD3/Pendulum-v0/critic_2')
+        T.save(agent.actor.state_dict(), 'Section 6 - TD3/Pendulum-v0/actor')
+        T.save(agent.target_critic_1.state_dict(), 'Section 6 - TD3/Pendulum-v0/target_critic_1')
+        T.save(agent.target_critic_2.state_dict(), 'Section 6 - TD3/Pendulum-v0/target_critic_2')
+        T.save(agent.target_actor.state_dict(), 'Section 6 - TD3/Pendulum-v0/target_actor')
+
+    else:
+        # Loading the trained networks
+        agent.critic_1.load_state_dict(T.load('Section 6 - TD3/Pendulum-v0/critic_1'))
+        agent.critic_2.load_state_dict(T.load('Section 6 - TD3/Pendulum-v0/critic_2'))
+        agent.actor.load_state_dict(T.load('Section 6 - TD3/Pendulum-v0/actor'))
+        agent.target_critic_1.load_state_dict(T.load('Section 6 - TD3/Pendulum-v0/target_critic_1'))
+        agent.target_critic_2.load_state_dict(T.load('Section 6 - TD3/Pendulum-v0/target_critic_2'))
+        agent.target_actor.load_state_dict(T.load('Section 6 - TD3/Pendulum-v0/target_actor'))
+
+        # Showing the video
+        for t in range(10):
+            observation = env.reset()
+            done = False
+            total_reward = 0
+            while not done:
+                env.render()
+                a = agent.get_action(observation, training=False)
+                observation, reward, done, info = env.step(a)
+                total_reward = total_reward + reward
+            print('video #' + str(t + 1) + ' ----> total reward:' + '%.2f' % total_reward)
+        env.close()
 
 
-
-
-
-
-
-
-
-
-
-
+if __name__ == '__main__':
+    main(training=False)
 
