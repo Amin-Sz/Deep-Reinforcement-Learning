@@ -90,10 +90,11 @@ class ValueNetwork(nn.Module):
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self, input_dims, n_actions, learning_rate=3e-4, fc1_dims=256, fc2_dims=256):
+    def __init__(self, input_dims, n_actions, action_max, learning_rate=3e-4, fc1_dims=256, fc2_dims=256):
         super(ActorNetwork, self).__init__()
         self.input_dims = input_dims
         self.n_actions = n_actions
+        self.action_max = action_max
         self.lr = learning_rate
         self.fc1_dims = fc1_dims
         self.fc2_dims = fc2_dims
@@ -112,11 +113,25 @@ class ActorNetwork(nn.Module):
         state = F.relu(state)
         state = self.fc2(state)
         state = F.relu(state)
-
         mean = self.mean(state)
         std = self.std(state)
+        std = T.clamp(std, min=1e-6, max=1.0)  # Bounding standard deviation
+        return mean, std
+
+    def sample(self, state, training=True):
+        action_max = T.tensor(self.action_max, dtype=T.float).view(1, -1).to(self.device)
+        mean, std = self.forward(state)
         distribution = Normal(mean, std)
-        return distribution.sample()
+        if training:
+            u = distribution.rsample()
+            a = action_max*T.tanh(u)  # CHECK THIS
+        else:
+            u = distribution.sample()  # Do we need this???
+            a = action_max*T.tanh(mean)  # CHECK THIS
+
+        log_pi = T.sum(distribution.log_prob(u), dim=1, keepdim=True) - \
+                 T.sum(T.log(action_max*(1.0 - T.multiply(T.tanh(u), T.tanh(u))) + 1e-6), dim=1, keepdim=True)
+        return a, log_pi
 
 
 
