@@ -118,20 +118,111 @@ class ActorNetwork(nn.Module):
         std = T.clamp(std, min=1e-6, max=1.0)  # Bounding standard deviation
         return mean, std
 
-    def sample(self, state, training=True):
+    def sample(self, state, reparameterize, training=True):
         action_max = T.tensor(self.action_max, dtype=T.float).view(1, -1).to(self.device)
         mean, std = self.forward(state)
-        distribution = Normal(mean, std)
         if training:
-            u = distribution.rsample()
-            a = action_max*T.tanh(u)  # CHECK THIS
-        else:
-            u = distribution.sample()  # Do we need this???
-            a = action_max*T.tanh(mean)  # CHECK THIS
+            distribution = Normal(mean, std)
+            if reparameterize:
+                u = distribution.rsample()
+                a = action_max*T.tanh(u)  # CHECK THIS
+            else:
+                u = distribution.sample()
+                a = action_max*T.tanh(u)  # CHECK THIS
 
-        log_pi = T.sum(distribution.log_prob(u), dim=1, keepdim=True) - \
-                 T.sum(T.log(action_max*(1.0 - T.multiply(T.tanh(u), T.tanh(u))) + 1e-6), dim=1, keepdim=True)
-        return a, log_pi
+            log_pi = T.sum(distribution.log_prob(u), dim=1, keepdim=True) - \
+                     T.sum(T.log(action_max*(1.0 - T.multiply(T.tanh(u), T.tanh(u))) + 1e-6), dim=1, keepdim=True)
+            return a, log_pi
+        else:
+            return mean, None
+
+
+class Agent:
+    def __init__(self, state_dims, action_dims, action_min, action_max, batch_size, reward_scale,
+                 gamma=0.99, mem_size=1000000, tau=0.005):
+        self.state_dims = state_dims
+        self.action_dims = action_dims
+        self.action_min = action_min
+        self.action_max = action_max
+        self.batch_size = batch_size
+        self.reward_scale = reward_scale
+        self.gamma = gamma
+        self.tau = tau
+
+        self.replay_buffer = ReplayBuffer(mem_size=mem_size, state_dim=self.state_dims, action_dim=self.action_dims)
+
+        self.actor = ActorNetwork(input_dims=self.state_dims, n_actions=self.action_dims, action_max=self.action_max)
+        self.critic_1 = CriticNetwork(input_dims=self.state_dims, n_actions=self.action_dims)
+        self.critic_2 = CriticNetwork(input_dims=self.state_dims, n_actions=self.action_dims)
+        self.value = ValueNetwork(input_dims=self.state_dims)
+        self.target_value = ValueNetwork(input_dims=self.state_dims)
+
+        self.update_target_network(tau=1.0)
+
+    def get_action(self, state, reparameterize=False, training=True):
+        state = T.tensor([state], dtype=T.float).to(self.actor.device)
+        action, _ = self.actor.sample(state, reparameterize=reparameterize, training=training)
+        return action.cpu().detach().numpy()[0]
+
+    def update_networks(self):
+        states, actions, rewards, new_states, dones = self.replay_buffer.sample(batch_size=self.batch_size)
+        states = T.tensor(states, dtype=T.float).to(self.actor.device)
+        actions = T.tensor(actions, dtype=T.float).to(self.actor.device)
+        scaled_rewards = T.tensor(rewards, dtype=T.float).to(self.actor.device) * self.reward_scale
+        new_states = T.tensor(new_states, dtype=T.float).to(self.actor.device)
+        dones = T.tensor(dones).to(self.actor.device)
+
+        V = self.value.forward(states)
+        sampled_actions, log_probs = self.actor.sample(states, reparameterize=False)
+        critic_value_1_current_policy = self.critic_1.forward(states, sampled_actions)
+        critic_value_2_current_policy = self.critic_2.forward(states, sampled_actions)
+        Q = T.min(critic_value_1_current_policy, critic_value_2_current_policy)
+        self.value.optimizer.zero_grad()
+        value_loss = (V - Q + log_probs)**2
+        value_loss = 0.5*T.mean(value_loss)
+        value_loss.backward(retain_graph=True)  # So that PyTorch doesn't get rid of graph calculations
+        self.value.optimizer.step()
+
+        target_value = self.target_value.forward(new_states)
+        target_value[dones] = 0.0
+        target = scaled_rewards + self.gamma*target_value
+
+        critic_value_1 = self.critic_1.forward(states, actions)
+        critic_value_2 = self.critic_2.forward(states, actions)
+        self.critic_1.optimizer.zero_grad()
+        self.critic_2.optimizer.zero_grad()
+        critic_1_loss = 0.5*F.mse_loss(critic_value_1, target)
+        critic_2_loss = 0.5*F.mse_loss(critic_value_2, target)
+        critic_loss = critic_1_loss + critic_2_loss
+        critic_loss.backward(retain_graph=True)
+        self.critic_1.optimizer.step()
+        self.critic_2.optimizer.step()
+
+        sampled_actions, log_probs = self.actor.sample(states, reparameterize=True)
+        critic_value_1_current_policy = self.critic_1.forward(states, sampled_actions)
+        critic_value_2_current_policy = self.critic_2.forward(states, sampled_actions)
+        Q = T.min(critic_value_1_current_policy, critic_value_2_current_policy)
+        self.actor.optimizer.zero_grad()
+        actor_loss = log_probs - Q
+        actor_loss = T.mean(actor_loss)
+        actor_loss.backward()
+        self.actor.optimizer.step()
+
+        self.update_target_network()
+
+    def update_target_network(self, tau=None):
+        if tau is None:
+            tau = self.tau
+
+        value_params = dict(self.value.named_parameters())
+        target_value_params = dict(self.target_value.named_parameters())
+        for name in target_value_params:
+            target_value_params[name] = (1 - tau)*target_value_params[name].clone() \
+                                        + tau*value_params[name].clone()
+
+        self.target_value.load_state_dict(target_value_params)
+
+
 
 
 
