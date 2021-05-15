@@ -125,10 +125,10 @@ class ActorNetwork(nn.Module):
             distribution = Normal(mean, std)
             if reparameterize:
                 u = distribution.rsample()
-                a = action_max*T.tanh(u)  # CHECK THIS
+                a = action_max*T.tanh(u)
             else:
                 u = distribution.sample()
-                a = action_max*T.tanh(u)  # CHECK THIS
+                a = action_max*T.tanh(u)
 
             log_pi = T.sum(distribution.log_prob(u), dim=1, keepdim=True) - \
                      T.sum(T.log(action_max*(1.0 - T.multiply(T.tanh(u), T.tanh(u))) + 1e-6), dim=1, keepdim=True)
@@ -223,36 +223,89 @@ class Agent:
         self.target_value.load_state_dict(target_value_params)
 
 
+def play_one_episode(env, agent):
+    total_reward = 0.0
+    done = False
+    observation = env.reset()
+    while not done:
+        a = agent.get_action(observation)
+        prev_observation = observation
+        observation, reward, done, info = env.step(a)
+        total_reward += reward
+
+        agent.replay_buffer.add_to_mem(state=prev_observation, action=a, reward=reward,
+                                       state_new=observation, done=done)
+        if agent.replay_buffer.counter >= agent.batch_size:
+            agent.update_networks()
+
+    return agent, total_reward
 
 
+def main(training):
+    env = gym.make('LunarLanderContinuous-v2')
+
+    batch_size = 100
+    reward_scale = 2.0
+    gamma = 0.99
+    tau = 0.005
+    agent = Agent(state_dims=env.observation_space.shape[0], action_dims=env.action_space.shape[0],
+                  action_min=env.action_space.low, action_max=env.action_space.high, batch_size=batch_size,
+                  reward_scale=reward_scale, gamma=gamma, tau=tau)
+
+    if training:
+        reward_history = []
+        average_reward_history = []
+        n_iterations = 1500
+        for t in range(n_iterations):
+            agent, total_reward = play_one_episode(env, agent)
+            reward_history.append(total_reward)
+            average_reward_history.append(np.mean(reward_history[-100:]))
+
+            if t % 1 == 0:
+                print('iteration #' + str(t + 1) + ' -----> ' +
+                      'total reward:' + '%.2f' % total_reward +
+                      ', average reward:' + '%.2f' % np.mean(reward_history[-100:]))
+
+        # Plotting the results
+        axes = plt.axes()
+        axes.set_ylim([np.min(reward_history) - 200, np.max(reward_history) + 50])
+        plt.xlabel('Episode')
+        plt.ylabel('Reward')
+        plt.plot(np.arange(1, n_iterations + 1), reward_history)
+        plt.plot(np.arange(1, n_iterations + 1), average_reward_history)
+        legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
+        plt.legend(['Reward', legend_2], loc=4)
+        plt.show()
+        plt.savefig('Section 7 - SAC/LunarLanderContinuous-v2/Rewards_Pendulum-v0')
+
+        # Saving the trained networks
+        T.save(agent.value.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/value_network')
+        T.save(agent.target_value.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/target_value_network')
+        T.save(agent.critic_1.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/critic_1_network')
+        T.save(agent.critic_2.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/critic_2_network')
+        T.save(agent.actor.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/actor_network')
+
+    else:
+        # Loading the trained networks
+        agent.value.load_state_dict(T.load('Section 7 - SAC/LunarLanderContinuous-v2/value_network'))
+        agent.critic_1.load_state_dict(T.load('Section 7 - SAC/LunarLanderContinuous-v2/critic_1_network'))
+        agent.critic_2.load_state_dict(T.load('Section 7 - SAC/LunarLanderContinuous-v2/critic_2_network'))
+        agent.actor.load_state_dict(T.load('Section 7 - SAC/LunarLanderContinuous-v2/actor_network'))
+
+        # Showing the video
+        for t in range(10):
+            observation = env.reset()
+            done = False
+            total_reward = 0
+            while not done:
+                env.render()
+                a = agent.get_action(observation, training=False)
+                observation, reward, done, info = env.step(a)
+                total_reward = total_reward + reward
+            print('video #' + str(t + 1) + ' -----> total reward:' + '%.2f' % total_reward)
+        env.close()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == '__main__':
+    main(training=False)
 
