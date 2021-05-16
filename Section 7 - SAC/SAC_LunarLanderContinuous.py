@@ -245,7 +245,7 @@ def main(training):
     env = gym.make('LunarLanderContinuous-v2')
 
     batch_size = 100
-    reward_scale = 2.0
+    reward_scale = 5.0
     gamma = 0.99
     tau = 0.005
     agent = Agent(state_dims=env.observation_space.shape[0], action_dims=env.action_space.shape[0],
@@ -255,7 +255,7 @@ def main(training):
     if training:
         reward_history = []
         average_reward_history = []
-        n_iterations = 1500
+        n_iterations = 1000
         for t in range(n_iterations):
             agent, total_reward = play_one_episode(env, agent)
             reward_history.append(total_reward)
@@ -273,8 +273,9 @@ def main(training):
         plt.ylabel('Reward')
         plt.plot(np.arange(1, n_iterations + 1), reward_history)
         plt.plot(np.arange(1, n_iterations + 1), average_reward_history)
+        plt.plot(np.ones(n_iterations)*200, 'r-')
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
-        plt.legend(['Reward', legend_2], loc=4)
+        plt.legend(['Reward', legend_2, 'Reward of 200'], loc=4)
         plt.show()
         plt.savefig('Section 7 - SAC/LunarLanderContinuous-v2/Rewards_LunarLanderContinuous-v2')
 
