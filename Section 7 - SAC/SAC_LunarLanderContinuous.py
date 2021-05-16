@@ -134,7 +134,7 @@ class ActorNetwork(nn.Module):
                      T.sum(T.log(action_max*(1.0 - T.multiply(T.tanh(u), T.tanh(u))) + 1e-6), dim=1, keepdim=True)
             return a, log_pi
         else:
-            return mean, None
+            return action_max*T.tanh(mean), None
 
 
 class Agent:
@@ -276,7 +276,7 @@ def main(training):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
         plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        plt.savefig('Section 7 - SAC/LunarLanderContinuous-v2/Rewards_Pendulum-v0')
+        plt.savefig('Section 7 - SAC/LunarLanderContinuous-v2/Rewards_LunarLanderContinuous-v2')
 
         # Saving the trained networks
         T.save(agent.value.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/value_network')

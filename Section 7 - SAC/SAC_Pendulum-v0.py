@@ -134,7 +134,7 @@ class ActorNetwork(nn.Module):
                      T.sum(T.log(action_max*(1.0 - T.multiply(T.tanh(u), T.tanh(u))) + 1e-6), dim=1, keepdim=True)
             return a, log_pi
         else:
-            return mean, None
+            return action_max*T.tanh(mean), None
 
 
 class Agent:
