@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from keras.layers import Dense, BatchNormalization
+from keras.layers import Dense, BatchNormalization, Concatenate
 from keras.activations import relu, tanh
 from keras.optimizers import Adam
 from keras.losses import MSE
@@ -38,7 +38,7 @@ class ReplayBuffer:
 
 
 class CriticNetwork(tf.keras.Model):
-    def __init__(self, input_dims, n_actions, fc1_dims=400, fc2_dims=300, learning_rate=1e-3, weight_decay=1e-2):
+    def __init__(self, input_dims, n_actions, fc1_dims=512, fc2_dims=512, learning_rate=2e-3, weight_decay=1e-2):
         super(CriticNetwork, self).__init__()
         self.input_dims = input_dims
         self.n_actions = n_actions
@@ -47,29 +47,23 @@ class CriticNetwork(tf.keras.Model):
         self.lr = learning_rate
         self.decay = weight_decay
 
-        self.fc1 = Dense(units=self.fc1_dims, input_dim=self.input_dims)
-        self.fc2 = Dense(units=self.fc2_dims, input_dim=self.fc1_dims)
+        self.fc1 = Dense(units=self.fc1_dims, input_dim=self.input_dims, activation='relu')
+        self.fc2 = Dense(units=self.fc2_dims, input_dim=self.fc1_dims, activation='relu')
         self.fc_a = Dense(units=self.fc2_dims, input_dim=self.n_actions)
-        self.fc3 = Dense(units=1, input_dim=self.fc2_dims)
+        self.fc3 = Dense(units=1, input_dim=self.fc2_dims, activation='linear')
 
-        self.optimizer = Adam(learning_rate=self.lr, decay=self.decay)
+        self.optimizer = Adam(learning_rate=self.lr)
 
-    def forward(self, x, a, training=True):
-        x = self.fc1(x)
-        x = BatchNormalization()(x, training)
-        x = relu(x)
+    def call(self, inputs, training=None, mask=None):
+        inputs = self.fc1(inputs)
+        inputs = self.fc2(inputs)
+        q = self.fc3(inputs)
 
-        x = self.fc2(x)
-        x = BatchNormalization()(x, training)  # todo Change the training mode when you are training or evaluating
-        a = self.fc_a(a)
-        x_a = relu(tf.add(x, a))
-
-        q = self.fc3(x_a)
         return q
 
 
 class ActorNetwork(tf.keras.Model):
-    def __init__(self, input_dims, n_actions, fc1_dims=400, fc2_dims=300, learning_rate=1e-4, weight_decay=1e-2):
+    def __init__(self, input_dims, n_actions, fc1_dims=512, fc2_dims=512, learning_rate=1e-3, weight_decay=1e-2):
         super(ActorNetwork, self).__init__()
         self.input_dims = input_dims
         self.n_actions = n_actions
@@ -78,24 +72,18 @@ class ActorNetwork(tf.keras.Model):
         self.lr = learning_rate
         self.decay = weight_decay
 
-        self.fc1 = Dense(units=self.fc1_dims, input_dim=self.input_dims)
-        self.fc2 = Dense(units=self.fc2_dims, input_dim=self.fc1_dims)
-        self.fc3 = Dense(units=n_actions, input_dim=self.fc2_dims)
+        self.fc1 = Dense(units=self.fc1_dims, input_dim=self.input_dims, activation='relu')
+        self.fc2 = Dense(units=self.fc2_dims, input_dim=self.fc1_dims, activation='relu')
+        self.fc3 = Dense(units=n_actions, input_dim=self.fc2_dims, activation='tanh')
 
-        self.optimizer = Adam(learning_rate=self.lr, decay=self.decay)
+        self.optimizer = Adam(learning_rate=self.lr)
 
-    def forward(self, x, training=True):
-        x = self.fc1(x)
-        x = BatchNormalization()(x, training)  # todo Change the training mode when you are training or evaluating
-        x = relu(x)
+    def call(self, state, training=None, mask=None):
+        state = self.fc1(state)
+        state = self.fc2(state)
+        action = self.fc3(state)
 
-        x = self.fc2(x)
-        x = BatchNormalization()(x, training)
-        x = relu(x)
-
-        x = self.fc3(x)
-        a = tanh(x)  # todo Check that action_max must be multiplied here or in the play_one_game function
-        return a
+        return action
 
 
 class Agent:
@@ -112,17 +100,17 @@ class Agent:
                                           action_dim=self.action_dims)
 
         self.actor = ActorNetwork(input_dims=self.state_dims, n_actions=self.action_dims)
-        self.critic = CriticNetwork(input_dims=self.state_dims, n_actions=self.action_dims)
+        self.critic = CriticNetwork(input_dims=self.state_dims + self.action_dims, n_actions=self.action_dims)
         self.target_actor = ActorNetwork(input_dims=self.state_dims, n_actions=self.action_dims)
-        self.target_critic = CriticNetwork(input_dims=self.state_dims, n_actions=self.action_dims)
+        self.target_critic = CriticNetwork(input_dims=self.state_dims + self.action_dims, n_actions=self.action_dims)
 
         self.update_target_networks(tau=1.0)
 
     def get_action(self, state, training=True):
         state = tf.constant([state], dtype=tf.float32)
-        action = self.actor.forward(state, training=False)
+        action = self.actor.call(state)
         if training:
-            action += tf.random.normal(shape=(1, self.action_dims), mean=0.0, stddev=0.1)
+            action += tf.random.normal(shape=action.shape, mean=0.0, stddev=0.01)
             action = tf.clip_by_value(action, clip_value_min=-1.0, clip_value_max=1.0)
 
         return action.numpy()[0]  # todo Check that actions are being stored properly in the buffer
@@ -137,15 +125,20 @@ class Agent:
         dones = tf.cast(dones, dtype=tf.float32)
 
         with tf.GradientTape() as tape:
-            target_actions = self.target_actor.forward(new_states)
-            target = rewards + self.gamma * (1.0 - dones) * self.target_critic.forward(new_states, target_actions)
-            critic_value = self.critic.forward(states, actions)
-            critic_loss = tf.reduce_mean(MSE(y_true=target, y_pred=critic_value))  # todo Remove reduce_mean to see its effects
+            target_actions = self.target_actor.call(new_states)
+            x_target = Concatenate(axis=1)([new_states, target_actions])
+            target = rewards + self.gamma * (1.0 - dones) * self.target_critic.call(x_target)
+
+            x = Concatenate(axis=1)([states, actions])
+            critic_value = self.critic.call(x)
+            critic_loss = tf.reduce_mean(MSE(y_true=target, y_pred=critic_value))
         critic_gradients = tape.gradient(critic_loss, self.critic.trainable_variables)
         self.critic.optimizer.apply_gradients(zip(critic_gradients, self.critic.trainable_variables))
 
         with tf.GradientTape() as tape:
-            actor_loss = -tf.reduce_mean(self.critic.forward(states, self.actor.forward(states)))
+            mu = self.actor.call(states)
+            x_actor = Concatenate(axis=1)([states, mu])
+            actor_loss = -tf.reduce_mean(self.critic.call(x_actor))
         actor_gradients = tape.gradient(actor_loss, self.actor.trainable_variables)
         self.actor.optimizer.apply_gradients(zip(actor_gradients, self.actor.trainable_variables))
 
@@ -156,15 +149,15 @@ class Agent:
             tau = self.tau
 
         variables = []
-        for i in range(len(self.target_critic.trainable_variables)):
-            variables.append(tau*self.critic.trainable_variables[i] +
-                             (1.0 - tau)*self.target_critic.trainable_variables[i])
+        for i in range(len(self.target_critic.weights)):
+            variables.append(tau*self.critic.weights[i] +
+                             (1.0 - tau)*self.target_critic.weights[i])
         self.target_critic.set_weights(variables)
 
         variables = []
-        for i in range(len(self.target_actor.trainable_variables)):
-            variables.append(tau*self.actor.trainable_variables[i] +
-                             (1.0 - tau)*self.target_actor.trainable_variables[i])
+        for i in range(len(self.target_actor.weights)):
+            variables.append(tau*self.actor.weights[i] +
+                             (1.0 - tau)*self.target_actor.weights[i])
         self.target_actor.set_weights(variables)
 
 
@@ -189,9 +182,9 @@ def play_one_game(env, agent):
 
 
 def main(training):
-    env = gym.make('LunarLanderContinuous-v2')
+    env = gym.make('Pendulum-v0')
     memory_size = 1000000
-    tau = 0.001
+    tau = 0.005
     gamma = 0.99
     batch_size = 64
     agent = Agent(state_dims=env.observation_space.shape[0], action_dims=env.action_space.shape[0],
@@ -200,7 +193,7 @@ def main(training):
 
     if training:
         # Training the agent
-        n_iterations = 1500
+        n_iterations = 300
         reward_history = []
         avg_reward_history = []
         for t in range(n_iterations):
