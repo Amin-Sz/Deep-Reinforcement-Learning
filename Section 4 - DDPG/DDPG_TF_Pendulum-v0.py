@@ -212,26 +212,23 @@ def main(training):
         plt.ylabel('Reward')
         plt.plot(np.arange(1, n_iterations + 1), reward_history)
         plt.plot(np.arange(1, n_iterations + 1), avg_reward_history)
-        plt.plot(np.ones(n_iterations)*200, 'r-')
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
-        plt.legend(['Reward', legend_2, 'Reward of 200'], loc=4)
+        plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        plt.savefig('Section 4 - DDPG/LunarLanderContinuous-v2_TF/Rewards_LunarLander')
+        plt.savefig('Section 4 - DDPG/Pendulum-v0_TF/Rewards_Pendulum-v0')
 
         # Saving the networks
-        agent.critic.save('Section 4 - DDPG/LunarLanderContinuous-v2_TF/critic_LunarLander')
-        agent.actor.save('Section 4 - DDPG/LunarLanderContinuous-v2_TF/actor_LunarLander')
-        agent.target_critic.save('Section 4 - DDPG/LunarLanderContinuous-v2_TF/target_critic_LunarLander')
-        agent.target_actor.save('Section 4 - DDPG/LunarLanderContinuous-v2_TF/target_actor_LunarLander')
+        agent.critic.save_weights('Section 4 - DDPG/Pendulum-v0_TF/critic_Pendulum-v0')
+        agent.actor.save_weights('Section 4 - DDPG/Pendulum-v0_TF/actor_Pendulum-v0')
+        agent.target_critic.save_weights('Section 4 - DDPG/Pendulum-v0_TF/target_critic_Pendulum-v0')
+        agent.target_actor.save_weights('Section 4 - DDPG/Pendulum-v0_TF/target_actor_Pendulum-v0')
 
     else:
         # Loading networks
-        agent.critic = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2_TF/critic_LunarLander')
-        agent.actor = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2_TF/actor_LunarLander')
-        agent.target_critic = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2_TF/'
-                                                         'target_critic_LunarLander')
-        agent.target_actor = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2_TF/'
-                                                        'target_actor_LunarLander')
+        agent.critic.load_weights('Section 4 - DDPG/Pendulum-v0_TF/critic_Pendulum-v0')
+        agent.actor.load_weights('Section 4 - DDPG/Pendulum-v0_TF/actor_Pendulum-v0')
+        agent.target_critic.load_weights('Section 4 - DDPG/Pendulum-v0_TF/target_critic_Pendulum-v0')
+        agent.target_actor.load_weights('Section 4 - DDPG/Pendulum-v0_TF/target_actor_Pendulum-v0')
 
         # Showing video
         action_max = env.action_space.high
