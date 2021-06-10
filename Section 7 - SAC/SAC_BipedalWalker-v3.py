@@ -38,7 +38,7 @@ class ReplayBuffer:
 
 
 class CriticNetwork(nn.Module):
-    def __init__(self, input_dims, n_actions, learning_rate=1e-3, fc1_dims=256, fc2_dims=256):
+    def __init__(self, input_dims, n_actions, learning_rate=3e-4, fc1_dims=256, fc2_dims=256):
         super(CriticNetwork, self).__init__()
         self.lr = learning_rate
         self.input_dims = input_dims
@@ -65,7 +65,7 @@ class CriticNetwork(nn.Module):
 
 
 class ValueNetwork(nn.Module):
-    def __init__(self, input_dims, learning_rate=1e-3, fc1_dims=256, fc2_dims=256):
+    def __init__(self, input_dims, learning_rate=3e-4, fc1_dims=256, fc2_dims=256):
         super(ValueNetwork, self).__init__()
         self.input_dims = input_dims
         self.lr = learning_rate
@@ -90,7 +90,7 @@ class ValueNetwork(nn.Module):
 
 
 class ActorNetwork(nn.Module):
-    def __init__(self, input_dims, n_actions, action_max, learning_rate=1e-3, fc1_dims=256, fc2_dims=256):
+    def __init__(self, input_dims, n_actions, action_max, learning_rate=3e-4, fc1_dims=256, fc2_dims=256):
         super(ActorNetwork, self).__init__()
         self.input_dims = input_dims
         self.n_actions = n_actions
@@ -138,7 +138,7 @@ class ActorNetwork(nn.Module):
 
 
 class Agent:
-    def __init__(self, state_dims, action_dims, action_min, action_max, batch_size, reward_scale,
+    def __init__(self, state_dims, action_dims, action_min, action_max, batch_size, reward_scale, alpha,
                  gamma=0.99, mem_size=1000000, tau=0.005):
         self.state_dims = state_dims
         self.action_dims = action_dims
@@ -146,6 +146,7 @@ class Agent:
         self.action_max = action_max
         self.batch_size = batch_size
         self.reward_scale = reward_scale
+        self.alpha = alpha  # Temperature parameter
         self.gamma = gamma
         self.tau = tau
 
@@ -168,7 +169,7 @@ class Agent:
         states, actions, rewards, new_states, dones = self.replay_buffer.sample(batch_size=self.batch_size)
         states = T.tensor(states, dtype=T.float).to(self.actor.device)
         actions = T.tensor(actions, dtype=T.float).to(self.actor.device)
-        scaled_rewards = T.tensor(rewards, dtype=T.float).to(self.actor.device) * self.reward_scale
+        rewards = T.tensor(rewards, dtype=T.float).to(self.actor.device)
         new_states = T.tensor(new_states, dtype=T.float).to(self.actor.device)
         dones = T.tensor(dones).to(self.actor.device)
 
@@ -178,14 +179,14 @@ class Agent:
         critic_value_2_current_policy = self.critic_2.forward(states, sampled_actions)
         Q = T.min(critic_value_1_current_policy, critic_value_2_current_policy)
         self.value.optimizer.zero_grad()
-        value_loss = (V - Q + log_probs)**2
+        value_loss = (V - Q + log_probs*self.alpha)**2
         value_loss = 0.5*T.mean(value_loss)
         value_loss.backward(retain_graph=True)  # So that PyTorch doesn't get rid of graph calculations
         self.value.optimizer.step()
 
         target_value = self.target_value.forward(new_states)
         target_value[dones] = 0.0
-        target = scaled_rewards + self.gamma*target_value
+        target = rewards/self.alpha + self.gamma*target_value
 
         critic_value_1 = self.critic_1.forward(states, actions)
         critic_value_2 = self.critic_2.forward(states, actions)
@@ -203,7 +204,7 @@ class Agent:
         critic_value_2_current_policy = self.critic_2.forward(states, sampled_actions)
         Q = T.min(critic_value_1_current_policy, critic_value_2_current_policy)
         self.actor.optimizer.zero_grad()
-        actor_loss = log_probs - Q
+        actor_loss = log_probs*self.alpha - Q
         actor_loss = T.mean(actor_loss)
         actor_loss.backward()
         self.actor.optimizer.step()
@@ -236,7 +237,6 @@ def play_one_episode(env, agent):
 
         counter += 1
         if counter >= 1600 and done:
-            print('Entered')
             done = False
             agent.replay_buffer.add_to_mem(state=prev_observation, action=a, reward=reward,
                                            state_new=observation, done=done)
@@ -256,16 +256,17 @@ def main(training):
 
     batch_size = 256
     reward_scale = 7.5
+    alpha = 0.2
     gamma = 0.99
     tau = 0.005
     agent = Agent(state_dims=env.observation_space.shape[0], action_dims=env.action_space.shape[0],
                   action_min=env.action_space.low, action_max=env.action_space.high, batch_size=batch_size,
-                  reward_scale=reward_scale, gamma=gamma, tau=tau)
+                  reward_scale=reward_scale, alpha=alpha, gamma=gamma, tau=tau)
 
     if training:
         reward_history = []
         average_reward_history = []
-        n_iterations = 200
+        n_iterations = 1000
         for t in range(n_iterations):
             agent, total_reward = play_one_episode(env, agent)
             reward_history.append(total_reward)
@@ -283,8 +284,9 @@ def main(training):
         plt.ylabel('Reward')
         plt.plot(np.arange(1, n_iterations + 1), reward_history)
         plt.plot(np.arange(1, n_iterations + 1), average_reward_history)
+        plt.plot(np.ones(n_iterations)*300, 'r-')
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
-        plt.legend(['Reward', legend_2], loc=4)
+        plt.legend(['Reward', legend_2, 'Reward of 300'], loc=4)
         plt.show()
         plt.savefig('Section 7 - SAC/BipedalWalker-v3/Rewards_BipedalWalker-v3')
 
@@ -303,7 +305,7 @@ def main(training):
         agent.actor.load_state_dict(T.load('Section 7 - SAC/BipedalWalker-v3/actor_network'))
 
         # Showing the video
-        for t in range(1):
+        for t in range(10):
             counter = 0
             observation = env.reset()
             done = False
