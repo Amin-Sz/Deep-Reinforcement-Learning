@@ -198,8 +198,8 @@ class Agent:
 
     def get_action(self, state, hist_observation, hist_action, hist_length, training=True):
         state = T.tensor([state], dtype=T.float).to(self.actor.device)
-        hist_observation = T.tensor(hist_observation, dtype=T.float).to(self.actor.device)
-        hist_action = T.tensor(hist_action, dtype=T.float).to(self.actor.device)
+        hist_observation = T.tensor([hist_observation], dtype=T.float).to(self.actor.device)
+        hist_action = T.tensor([hist_action], dtype=T.float).to(self.actor.device)
         if hist_length == 0:
             hist_length = 1
         hist_length = np.atleast_2d(hist_length).reshape(-1, 1)  # todo Check this
@@ -337,7 +337,7 @@ def play_one_episode(agent, env):
                 hist_action[0:-1, :] = hist_action[1:, :]
                 hist_action[-1, :] = a.reshape(1, -1)
 
-        if agent.replay_buffer.counter > agent.batch_size:
+        if agent.replay_buffer.counter > agent.batch_size + agent.history_length:
             agent.update()
 
     return agent, total_reward
