@@ -33,7 +33,7 @@ class ReplayBuffer:
 
     def sample(self, batch_size):
         indices = np.random.choice(range(self.history_length, np.min([self.size, self.counter])),
-                                   size=batch_size, replace=False)  # todo Check this -> DONE
+                                   size=batch_size, replace=False)
 
         states = self.states[indices]
         actions = self.actions[indices]
@@ -58,20 +58,17 @@ class ReplayBuffer:
                 start_index = index - self.history_length
                 if start_index < 0:
                     start_index = 0
-                if True in self.dones[start_index:index]:  # todo Check this -> DONE
+                if True in self.dones[start_index:index]:
                     start_index = start_index + np.where(self.dones[start_index:index] == True)[0][-1] + 1
 
                 length = index - start_index
-                '''if length <= 0:
-                    raise Exception('length should be greater than 0 when history_length is greater than 0. The value '
-                                    'of length was: ' + str(length) + '.')'''
-                hist_state[i, 0:length] = self.states[start_index:index, :]  # todo Check this -> DONE
+                hist_state[i, 0:length] = self.states[start_index:index, :]
                 hist_action[i, 0:length] = self.actions[start_index:index, :]
                 hist_next_state[i, 0:length] = self.states_new[start_index:index, :]
-                hist_next_action[i, 0:length] = self.actions[start_index + 1:index + 1]  # todo Check this -> DONE
+                hist_next_action[i, 0:length] = self.actions[start_index + 1:index + 1]
                 if length <= 0:
                     length = 1
-                hist_length[i] = length  # todo Check that in special circumstances the calculated length is correct -> DONE
+                hist_length[i] = length
 
         return states, actions, rewards, states_new, dones, \
                hist_length, hist_state, hist_action, hist_next_state, hist_next_action
@@ -87,7 +84,7 @@ class CriticNetwork(nn.Module):
         self.hidden_size = lstm_hidden_size
         self.fc2_dims = fc2_dims
         self.fc3_dims = fc3_dims
-        self.fc4_dims = fc4_dims  # todo Change the network structure according to the GitHub code
+        self.fc4_dims = fc4_dims
         self.lr = learning_rate
 
         self.fc1 = nn.Linear(self.state_dims + self.action_dims, self.fc1_dims)
@@ -107,7 +104,7 @@ class CriticNetwork(nn.Module):
 
         last_time_steps = np.repeat(hist_length, repeats=self.hidden_size, axis=1).reshape((-1, 1, self.hidden_size))
         last_time_steps = T.tensor(last_time_steps, dtype=T.int64).to(self.device)
-        memory_out = T.gather(memory_out, dim=1, index=last_time_steps - 1)  # take the last hidden state todo Check this -> DONE
+        memory_out = T.gather(memory_out, dim=1, index=last_time_steps - 1)  # take the last hidden state
         memory_out = memory_out.squeeze(dim=1)  # (batch, hidden_size)
 
         x = T.cat((state, action), dim=-1)
@@ -130,7 +127,7 @@ class ActorNetwork(nn.Module):
         self.hidden_size = lstm_hidden_size
         self.fc2_dims = fc2_dims
         self.fc3_dims = fc3_dims
-        self.fc4_dims = fc4_dims  # todo Change the network structure according to the GitHub code
+        self.fc4_dims = fc4_dims
         self.lr = learning_rate
 
         self.fc1 = nn.Linear(self.state_dims + self.action_dims, self.fc1_dims)
@@ -152,7 +149,7 @@ class ActorNetwork(nn.Module):
 
         last_time_steps = np.repeat(hist_length, repeats=self.hidden_size, axis=1).reshape((-1, 1, self.hidden_size))
         last_time_steps = T.tensor(last_time_steps, dtype=T.int64).to(self.device)
-        memory_out = T.gather(memory_out, dim=1, index=last_time_steps - 1)  # take the last hidden state todo Check this -> DONE
+        memory_out = T.gather(memory_out, dim=1, index=last_time_steps - 1)  # take the last hidden state
         memory_out = memory_out.squeeze(dim=1)  # (batch, hidden_size)
 
         current_feature_out = F.relu(self.fc2(state))
@@ -202,7 +199,7 @@ class Agent:
         hist_action = T.tensor([hist_action], dtype=T.float).to(self.actor.device)
         if hist_length == 0:
             hist_length = 1
-        hist_length = np.atleast_2d(hist_length).reshape(-1, 1)  # todo Check this
+        hist_length = np.atleast_2d(hist_length).reshape(-1, 1)
 
         if self.play_counter <= self.warm_up and training:
             action = self.env.action_space.sample()
@@ -380,30 +377,30 @@ def main(training=True):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
         plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        plt.savefig('Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
+        plt.savefig('Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
                     'Rewards_InvertedDoublePendulumPyBulletEnv')
 
         # Saving the networks
-        T.save(agent.critic_1.state_dict(), 'Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/critic_1')
-        T.save(agent.critic_2.state_dict(), 'Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/critic_2')
-        T.save(agent.actor.state_dict(), 'Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/actor')
-        T.save(agent.target_critic_1.state_dict(), 'Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
+        T.save(agent.critic_1.state_dict(), 'Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/critic_1')
+        T.save(agent.critic_2.state_dict(), 'Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/critic_2')
+        T.save(agent.actor.state_dict(), 'Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/actor')
+        T.save(agent.target_critic_1.state_dict(), 'Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
                                                    'target_critic_1')
-        T.save(agent.target_critic_2.state_dict(), 'Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
+        T.save(agent.target_critic_2.state_dict(), 'Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
                                                    'target_critic_2')
-        T.save(agent.target_actor.state_dict(), 'Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
+        T.save(agent.target_actor.state_dict(), 'Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
                                                 'target_actor')
 
     else:
         # Loading the trained networks
-        agent.critic_1.load_state_dict(T.load('Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/critic_1'))
-        agent.critic_2.load_state_dict(T.load('Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/critic_2'))
-        agent.actor.load_state_dict(T.load('Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/actor'))
-        agent.target_critic_1.load_state_dict(T.load('Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
+        agent.critic_1.load_state_dict(T.load('Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/critic_1'))
+        agent.critic_2.load_state_dict(T.load('Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/critic_2'))
+        agent.actor.load_state_dict(T.load('Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/actor'))
+        agent.target_critic_1.load_state_dict(T.load('Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
                                                      'target_critic_1'))
-        agent.target_critic_2.load_state_dict(T.load('Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
+        agent.target_critic_2.load_state_dict(T.load('Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
                                                      'target_critic_2'))
-        agent.target_actor.load_state_dict(T.load('Section 7 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
+        agent.target_actor.load_state_dict(T.load('Section 8 - LSTM-TD3/InvertedDoublePendulumPyBulletEnv-v0/'
                                                   'target_actor'))
 
         # Showing the video
