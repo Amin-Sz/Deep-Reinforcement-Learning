@@ -363,7 +363,7 @@ def main(training=True):
     if training:
         reward_set = []
         avg_score_set = []
-        n_iteration = 500
+        n_iteration = 3300
         for t in range(n_iteration):
             agent, total_reward = play_one_episode(agent, env)
 
