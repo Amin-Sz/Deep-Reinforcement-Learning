@@ -428,8 +428,7 @@ def main(training=True):
     if training:
         reward_set = []
         avg_score_set = []
-        n_iteration = 1500
-        best_avg_score = -np.inf
+        n_iteration = 10100
         for t in range(n_iteration):
             agent, total_reward = play_one_episode(agent, env)
 
@@ -438,16 +437,6 @@ def main(training=True):
             print('iteration #' + str(t + 1) + ' -----> ' +
                   'total reward:' + '%.2f' % total_reward +
                   ', average score:' + '%.2f' % np.mean(reward_set[-100:]))
-
-            if np.mean(reward_set[-100:]) > best_avg_score:
-                best_avg_score = np.mean(reward_set[-100:])
-                # Saving the networks
-                T.save(agent.critic_1.state_dict(), dir_ + '/critic_1')
-                T.save(agent.critic_2.state_dict(), dir_ + '/critic_2')
-                T.save(agent.actor.state_dict(), dir_ + '/actor')
-                T.save(agent.target_critic_1.state_dict(), dir_ + '/target_critic_1')
-                T.save(agent.target_critic_2.state_dict(), dir_ + '/target_critic_2')
-                T.save(agent.target_actor.state_dict(), dir_ + '/target_actor')
 
         # Plotting the results
         axes = plt.axes()
