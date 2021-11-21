@@ -285,7 +285,7 @@ def main(training=True):
         agent.actor_network.load_state_dict(T.load(dir_ + '/actor_network'))
 
         # Showing the video
-        for t in range(5):
+        for t in range(10):
             observation = env.reset()
             done = False
             total_reward = 0
