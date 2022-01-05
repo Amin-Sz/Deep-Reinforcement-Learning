@@ -22,13 +22,15 @@ def plot_learning_curve(env_name, directory, training_scores, avg_training_score
             avg_test_scores.append(np.mean(test_scores[max(0, t - 10):t + 1, 1]))
 
         axes = plt.axes()
-        axes.set_ylim([np.min(training_scores) - 5, np.max(test_scores[:, 1]) + 5])
+        # axes.set_ylim([np.min(training_scores) - 5, np.max(test_scores[:, 1]) + 5])
         plt.xlabel('Episode')
         plt.ylabel('Total Reward')
-        plt.plot(np.arange(1, len(training_scores) + 1), training_scores, '-b', alpha=0.3)
-        plt.plot(np.arange(1, len(training_scores) + 1), avg_training_scores, '-b')
-        plt.plot(np.linspace(1, len(training_scores), len(test_scores[:, 1])), test_scores[:, 1], 'o--g', alpha=0.3)
-        plt.plot(np.linspace(1, len(training_scores), len(test_scores[:, 1])), avg_test_scores, '-g')
+        plt.plot(np.arange(1, len(training_scores) + 1), training_scores, '-', color='xkcd:mid blue', alpha=0.3)
+        plt.plot(np.arange(1, len(training_scores) + 1), avg_training_scores, '-', color='xkcd:mid blue')
+        plt.plot(np.linspace(1, len(training_scores), len(test_scores[:, 1])), test_scores[:, 1], 'o--',
+                 color='xkcd:dull orange', alpha=0.3)
+        plt.plot(np.linspace(1, len(training_scores), len(test_scores[:, 1])), avg_test_scores, '-',
+                 color='xkcd:dull orange', linewidth=2)
         legend_2 = 'Running average of the last 100 training scores (' + '%.2f' % np.mean(training_scores[-100:]) + ')'
         legend_4 = 'Running average of the last 10 test scores (' + '%.2f' % np.array(avg_test_scores[-1]) + ')'
         plt.legend(['Training score', legend_2, 'Test score', legend_4])
