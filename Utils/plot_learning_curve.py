@@ -8,8 +8,8 @@ def plot_learning_curve(env_name, directory, training_scores, avg_training_score
         axes.set_ylim([np.min(training_scores) - 5, np.max(training_scores) + 5])
         plt.xlabel('Episode')
         plt.ylabel('Total Reward')
-        plt.plot(np.arange(1, len(training_scores) + 1), training_scores, '-b', alpha=0.3)
-        plt.plot(np.arange(1, len(training_scores) + 1), avg_training_scores, '-b')
+        plt.plot(np.arange(1, len(training_scores) + 1), training_scores, '-', color='xkcd:mid blue', alpha=0.3)
+        plt.plot(np.arange(1, len(training_scores) + 1), avg_training_scores, '-', color='xkcd:mid blue')
         legend_2 = 'Running average of the last 100 training scores (' + '%.2f' % np.mean(training_scores[-100:]) + ')'
         plt.legend(['Training score', legend_2], loc=4)
         plt.show()
