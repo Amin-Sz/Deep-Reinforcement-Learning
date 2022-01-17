@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import tensorflow_probability as tfp
-from keras.layers import Dense
-from keras.optimizers import Adam
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.optimizers import Adam
 import gym
 
 
