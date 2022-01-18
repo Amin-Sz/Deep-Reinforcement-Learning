@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from keras.layers import Dense, BatchNormalization, Concatenate
-from keras.activations import relu, tanh
-from keras.optimizers import Adam
-from keras.losses import MSE
+from tensorflow.keras.layers import Dense, BatchNormalization, Concatenate
+from tensorflow.keras.activations import relu, tanh
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import MSE
 import gym
 
 
@@ -182,7 +182,7 @@ def play_one_game(env, agent):
 
 
 def main(training):
-    env = gym.make('Pendulum-v0')
+    env = gym.make('Pendulum-v1')
     memory_size = 1000000
     tau = 0.005
     gamma = 0.99
