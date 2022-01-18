@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from keras.models import Sequential
-from keras.layers import Dense, Concatenate
-from keras.optimizers import Adam
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Concatenate
+from tensorflow.keras.optimizers import Adam
 import gym
 from sklearn.preprocessing import StandardScaler
 
@@ -144,7 +144,7 @@ def play_one_game(agent, env, scaler):
 
 def main(training=False):
     # Creating the scaler, agent and environment
-    env = gym.make('Pendulum-v0')
+    env = gym.make('Pendulum-v1')
     scaler = get_scaler(env)
     buffer_size = int(1e6)
     agent = Agent(mem_size=buffer_size, lr_Q=0.001, lr_policy=0.001, state_size=env.observation_space.shape[0],
