@@ -1,10 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from keras.layers import Dense, BatchNormalization, Concatenate
-from keras.activations import relu, tanh
-from keras.optimizers import Adam
-from keras.losses import MSE
+from tensorflow.keras.layers import Dense, BatchNormalization, Concatenate
+from tensorflow.keras.activations import relu, tanh
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import MSE
 import gym
 import pybullet_envs
 import time
