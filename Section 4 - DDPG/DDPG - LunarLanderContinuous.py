@@ -1,9 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import tensorflow as tf
-from keras.models import Sequential
-from keras.layers import Dense, Concatenate
-from keras.optimizers import Adam
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Concatenate
+from tensorflow.keras.optimizers import Adam
 import gym
 from sklearn.preprocessing import StandardScaler
 
