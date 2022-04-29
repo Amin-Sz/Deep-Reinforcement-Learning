@@ -17,12 +17,11 @@ from plot_learning_curve import plot_learning_curve
 
 
 class Policy(nn.Module):
-    def __init__(self, state_dims, n_actions, fc1_dims, fc2_dims):
+    def __init__(self, state_dims, n_actions, fc1_dims):
         super(Policy, self).__init__()
         self.state_dims = state_dims
         self.n_actions = n_actions
         self.fc1_dims = fc1_dims
-        self.fc2_dims = fc2_dims
 
         self.fc1 = nn.Linear(self.state_dims, self.fc1_dims)
         self.fc2 = nn.Linear(self.fc1_dims, self.n_actions)
@@ -43,14 +42,13 @@ class Policy(nn.Module):
 
 
 class EvolutionStrategies:
-    def __init__(self, n_threads, n_workers, state_dims, n_actions, fc1_dims, fc2_dims, initial_learning_rate,
+    def __init__(self, n_threads, n_workers, state_dims, n_actions, fc1_dims, initial_learning_rate,
                  final_learning_rate, noise_std, directory, env_name: str, episode_max):
         self.n_threads = n_threads
         self.n_workers = n_workers
         self.state_dims = state_dims
         self.n_actions = n_actions
         self.fc1_dims = fc1_dims
-        self.fc2_dims = fc2_dims
         self.initial_lr = initial_learning_rate
         self.final_lr = final_learning_rate
         self.sigma = noise_std
@@ -59,7 +57,7 @@ class EvolutionStrategies:
         self.episode_max = episode_max
 
         self.global_policy = Policy(state_dims=self.state_dims, n_actions=self.n_actions,
-                                    fc1_dims=self.fc1_dims, fc2_dims=self.fc2_dims)
+                                    fc1_dims=self.fc1_dims)
 
     def train(self):
         env = FlappyBirdEnvironment()
@@ -135,7 +133,7 @@ def worker(inputs):
 
     # env = FlappyBirdEnvironment()
     local_policy = Policy(state_dims=global_policy.state_dims, n_actions=global_policy.n_actions,
-                          fc1_dims=global_policy.fc1_dims, fc2_dims=global_policy.fc2_dims)
+                          fc1_dims=global_policy.fc1_dims)
 
     local_policy_params = dict(local_policy.named_parameters())
     global_policy_params = dict(global_policy.named_parameters())
@@ -175,13 +173,12 @@ def main(training: bool):
     n_workers = 50
     # mp.set_start_method('spawn')
     fc1_dims = 64
-    fc2_dims = 64
     initial_learning_rate = 0.03
     final_learning_rate = 0.005
     noise_std = 0.1
     episode_max = 3000
     es = EvolutionStrategies(n_threads=n_threads, n_workers=n_workers, state_dims=env.observation_space_shape[0],
-                             n_actions=env.action_space_n, fc1_dims=fc1_dims, fc2_dims=fc2_dims,
+                             n_actions=env.action_space_n, fc1_dims=fc1_dims,
                              initial_learning_rate=initial_learning_rate, final_learning_rate=final_learning_rate,
                              noise_std=noise_std, directory=dir_, env_name=env_name, episode_max=episode_max)
 
