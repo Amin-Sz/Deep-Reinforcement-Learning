@@ -30,5 +30,5 @@ class FlappyBirdEnvironment:
     def _get_observation(self):
         return np.array(list(self.p.getGameState().values()))
 
-    def set_display_scree(self, display: bool):
+    def set_display_screen(self, display: bool):
         self.p.display_screen = display

@@ -187,7 +187,7 @@ def main(training: bool):
 
     else:
         es.load_network()
-        env.set_display_scree(display=True)
+        env.set_display_screen(display=True)
         for t in range(5):
             observation = env.reset()
             done = False
