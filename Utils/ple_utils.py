@@ -49,3 +49,27 @@ class PLEWrappers:
         processed_obs = cv2.resize(observation[0], self.shape, interpolation=cv2.INTER_AREA)
         processed_obs = processed_obs.reshape((1, self.shape[0], self.shape[1]))
         return processed_obs  # Channels first
+
+
+def test():
+    from Utils.FlappyBird_wrapper import FlappyBirdEnvironment
+    import matplotlib.pyplot as plt
+    ple_env = FlappyBirdEnvironment(use_screen=True)
+    env = PLEWrappers(ple_env, repeat=4)
+
+    obs_0 = env.reset()
+    done = False
+    '''while not done:
+        obs, r, done, info = env.step(0)'''
+    for _ in range(10):
+        obs, r, done, info = env.step(0)
+
+    for p in range(env.stack_length):
+        idx = '1' + str(env.stack_length) + str(p + 1)
+        plt.subplot(int(idx))
+        plt.imshow(obs[p])
+        plt.title('timestep t' + str(p + 1 - env.stack_length) if p < env.repeat - 1 else 'timestep t')
+
+
+if __name__ == '__main__':
+    test()
