@@ -229,7 +229,7 @@ class Agent:
         T.save(self.target_value.state_dict(),  path + '/target_value_network')
         T.save(self.critic_1.state_dict(),  path + '/critic_1_network')
         T.save(self.critic_2.state_dict(),  path + '/critic_2_network')
-        T.save(self.actor.state_dict(),  path + 'actor_network')
+        T.save(self.actor.state_dict(),  path + '/actor_network')
 
     def load_networks(self, path):
         self.value.load_state_dict(T.load(path + '/value_network'))
