@@ -9,9 +9,10 @@ import gym
 
 
 class RepeatActionAndMaxFrame(gym.Wrapper):
-    def __init__(self, env=None, repeat=4):
+    def __init__(self, env=None, repeat=4, no_ops=0):
         super(RepeatActionAndMaxFrame, self).__init__(env)
         self.repeat = repeat
+        self.no_ops = no_ops
         self.shape = env.observation_space.low.shape
         self.frame_buffer = np.zeros_like((2, self.shape))
 
@@ -31,6 +32,13 @@ class RepeatActionAndMaxFrame(gym.Wrapper):
 
     def reset(self):
         obs = self.env.reset()
+        no_ops = np.random.choice(range(self.no_ops + 1))
+
+        for _ in range(no_ops):
+            obs, _, done, _ = self.env.step(0)  # Do nothing
+            if done:
+                self.env.reset()
+
         self.frame_buffer = np.zeros_like((2, self.shape))
         self.frame_buffer[0] = obs
         return obs
@@ -77,13 +85,13 @@ class StackFrames(gym.ObservationWrapper):
         return obs
 
 
-def make_env(env_name, shape=(84, 84, 1), skip=4, render_mode=None):
+def make_env(env_name, shape=(84, 84, 1), skip=4, no_ops=0, render_mode=None):
     if not render_mode:
         env = gym.make(env_name)
     else:
         env = gym.make(env_name, render_mode=render_mode)
 
-    env = RepeatActionAndMaxFrame(env, skip)
+    env = RepeatActionAndMaxFrame(env, skip, no_ops)
     env = PreprocessFrame(shape, env)
     env = StackFrames(env, skip)
 
