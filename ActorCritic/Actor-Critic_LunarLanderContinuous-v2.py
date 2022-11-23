@@ -124,7 +124,7 @@ def play_one_episode(agent, env):
 def main(training):
     env = gym.make('LunarLanderContinuous-v2')
     solved_score = 200
-    dir_ = 'Section 1 - Actor-Critic/LunarLanderContinuous-v2'
+    dir_ = 'LunarLanderContinuous-v2'
     gamma = 0.99
     agent = Agent(state_dims=env.observation_space.shape[0], action_dims=env.action_space.shape[0],
                   action_max=env.action_space.high, gamma=gamma)
