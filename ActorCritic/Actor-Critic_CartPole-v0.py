@@ -120,7 +120,7 @@ def play_one_episode(agent, env):
 def main(training):
     env = gym.make('CartPole-v0')
     solved_score = 200
-    dir_ = 'Section 1 - Actor-Critic/CartPole-v0'
+    dir_ = 'CartPole-v0'
     gamma = 0.99
     agent = Agent(state_dims=env.observation_space.shape[0], n_actions=env.action_space.n, gamma=gamma)
 
