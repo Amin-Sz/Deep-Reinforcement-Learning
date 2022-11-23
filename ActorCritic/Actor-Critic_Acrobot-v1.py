@@ -119,7 +119,7 @@ def play_one_episode(agent, env):
 
 def main(training):
     env = gym.make('Acrobot-v1')
-    dir_ = 'Section 1 - Actor-Critic/Acrobot-v1'
+    dir_ = 'Acrobot-v1'
     gamma = 0.99
     agent = Agent(state_dims=env.observation_space.shape[0], n_actions=env.action_space.n, gamma=gamma)
 
