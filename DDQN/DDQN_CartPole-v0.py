@@ -166,7 +166,7 @@ def play_one_episode(agent, env):
 def main(training):
     env = gym.make('CartPole-v0')
     solved_score = 200.0
-    dir_ = 'Section 2 - DDQN/CartPole-v0'
+    dir_ = 'CartPole-v0'
 
     gamma = 0.99
     batch_size = 32
