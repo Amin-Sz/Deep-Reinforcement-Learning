@@ -183,7 +183,7 @@ def main(training):
     env_name = 'FlappyBird'
     ple_env = FlappyBirdEnvironment(use_screen=True)
     env = PLEWrappers(ple_env, repeat=2, stack_length=4)
-    dir_ = 'Section 2 - DDQN/' + env_name
+    dir_ = env_name
 
     gamma = 0.99
     batch_size = 32
