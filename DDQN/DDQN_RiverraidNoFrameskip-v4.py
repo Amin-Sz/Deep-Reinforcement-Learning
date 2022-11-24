@@ -178,7 +178,7 @@ def play_one_episode(agent, env, training):
 def main(training):
     env_name = 'RiverraidNoFrameskip-v4'
     env = make_env(env_name)
-    dir_ = 'Section 2 - DDQN/' + env_name
+    dir_ = env_name
 
     gamma = 0.99
     batch_size = 32
