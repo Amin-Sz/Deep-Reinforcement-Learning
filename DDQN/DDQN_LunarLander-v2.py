@@ -166,7 +166,7 @@ def play_one_episode(agent, env):
 def main(training):
     env = gym.make('LunarLander-v2')
     solved_score = 200.0
-    dir_ = 'Section 2 - DDQN/LunarLander-v2'
+    dir_ = 'LunarLander-v2'
 
     gamma = 0.99
     batch_size = 32
