@@ -11,11 +11,6 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-"""
-    cd into the "Section 3 - Evolution Strategies" folder first
-"""
-
-
 os.environ['OMP_NUM_THREADS'] = '1'
 
 
