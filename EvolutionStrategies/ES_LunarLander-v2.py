@@ -5,12 +5,7 @@ import torch.nn.functional as F
 import torch.multiprocessing as mp
 import gym
 import os
-from plot_learning_curve import plot_learning_curve
-
-
-"""
-    cd into the "Section 3 - Evolution Strategies" folder first
-"""
+from Utils.plot_learning_curve import plot_learning_curve
 
 
 os.environ['OMP_NUM_THREADS'] = '1'
