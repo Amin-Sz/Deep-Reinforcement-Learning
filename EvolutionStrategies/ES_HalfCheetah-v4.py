@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.multiprocessing as mp
 import gym
 import os
-from plot_learning_curve import plot_learning_curve
+from Utils.plot_learning_curve import plot_learning_curve
 
 import warnings
 warnings.filterwarnings("ignore")
