@@ -3,9 +3,9 @@ import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.multiprocessing as mp
-from FlappyBird_utils import FlappyBirdEnvironment
+from Utils.FlappyBird_utils import FlappyBirdEnvironment
 import time
-from plot_learning_curve import plot_learning_curve
+from Utils.plot_learning_curve import plot_learning_curve
 
 
 # os.environ['OMP_NUM_THREADS'] = '1'
