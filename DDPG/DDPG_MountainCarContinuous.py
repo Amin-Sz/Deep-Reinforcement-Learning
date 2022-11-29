@@ -187,20 +187,20 @@ def main(training=False):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
         plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        plt.savefig('Section 4 - DDPG/MountainCarContinuous/Rewards_MountainCarContinuous')
+        plt.savefig('MountainCarContinuous/Rewards_MountainCarContinuous')
 
         # Saving the networks
-        agent.actor_network.save('Section 4 - DDPG/MountainCarContinuous/actor_MountainCar.h5')
-        agent.critic_network.save('Section 4 - DDPG/MountainCarContinuous/critic_MountainCar.h5')
-        agent.actor_network_target.save('Section 4 - DDPG/MountainCarContinuous/actor_target_MountainCar.h5')
-        agent.critic_network_target.save('Section 4 - DDPG/MountainCarContinuous/critic_target_MountainCar.h5')
+        agent.actor_network.save('MountainCarContinuous/actor_MountainCar.h5')
+        agent.critic_network.save('MountainCarContinuous/critic_MountainCar.h5')
+        agent.actor_network_target.save('MountainCarContinuous/actor_target_MountainCar.h5')
+        agent.critic_network_target.save('MountainCarContinuous/critic_target_MountainCar.h5')
 
     else:
         # Importing the trained networks
-        agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/MountainCarContinuous/actor_MountainCar.h5')
-        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/MountainCarContinuous/actor_target_MountainCar.h5')
-        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/MountainCarContinuous/critic_MountainCar.h5')
-        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/MountainCarContinuous/critic_target_MountainCar.h5')
+        agent.actor_network = tf.keras.models.load_model('MountainCarContinuous/actor_MountainCar.h5')
+        agent.actor_network_target = tf.keras.models.load_model('MountainCarContinuous/actor_target_MountainCar.h5')
+        agent.critic_network = tf.keras.models.load_model('MountainCarContinuous/critic_MountainCar.h5')
+        agent.critic_network_target = tf.keras.models.load_model('MountainCarContinuous/critic_target_MountainCar.h5')
 
         # Showing the video
         for _ in range(10):
