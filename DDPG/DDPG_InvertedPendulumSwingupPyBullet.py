@@ -220,21 +220,21 @@ def main(training):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
         plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        plt.savefig('Section 4 - DDPG/InvertedPendulumSwingupPyBullet-v0/Rewards_InvertedPendulumSwingupPyBullet')
+        plt.savefig('InvertedPendulumSwingupPyBullet-v0/Rewards_InvertedPendulumSwingupPyBullet')
 
         # Saving the networks
-        agent.critic.save_weights('Section 4 - DDPG/InvertedPendulumSwingupPyBullet-v0/critic')
-        agent.actor.save_weights('Section 4 - DDPG/InvertedPendulumSwingupPyBullet-v0/actor')
-        agent.target_critic.save_weights('Section 4 - DDPG/InvertedPendulumSwingupPyBullet-v0/'
+        agent.critic.save_weights('InvertedPendulumSwingupPyBullet-v0/critic')
+        agent.actor.save_weights('InvertedPendulumSwingupPyBullet-v0/actor')
+        agent.target_critic.save_weights('InvertedPendulumSwingupPyBullet-v0/'
                                          'target_critic')
-        agent.target_actor.save_weights('Section 4 - DDPG/InvertedPendulumSwingupPyBullet-v0/target_actor')
+        agent.target_actor.save_weights('InvertedPendulumSwingupPyBullet-v0/target_actor')
 
     else:
         # Loading networks
-        agent.critic.load_weights('Section 4 - DDPG/InvertedPendulumSwingupPyBullet-v0/critic').expect_partial()
-        agent.actor.load_weights('Section 4 - DDPG/InvertedPendulumSwingupPyBullet-v0/actor').expect_partial()
-        agent.target_critic.load_weights('Section 4 - DDPG/InvertedPendulumSwingupPyBullet-v0/target_critic').expect_partial()
-        agent.target_actor.load_weights('Section 4 - DDPG/InvertedPendulumSwingupPyBullet-v0/target_actor').expect_partial()
+        agent.critic.load_weights('InvertedPendulumSwingupPyBullet-v0/critic').expect_partial()
+        agent.actor.load_weights('InvertedPendulumSwingupPyBullet-v0/actor').expect_partial()
+        agent.target_critic.load_weights('InvertedPendulumSwingupPyBullet-v0/target_critic').expect_partial()
+        agent.target_actor.load_weights('InvertedPendulumSwingupPyBullet-v0/target_actor').expect_partial()
 
         # Showing video
         env.render(mode='human')
