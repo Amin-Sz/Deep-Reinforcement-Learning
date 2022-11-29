@@ -185,20 +185,20 @@ def main(training=False):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
         plt.legend(['Reward', legend_2, 'Reward of 200'], loc=4)
         plt.show()
-        plt.savefig('Section 4 - DDPG/LunarLanderContinuous-v2/Rewards_LunarLander')
+        plt.savefig('LunarLanderContinuous-v2/Rewards_LunarLander')
 
         # Saving the networks
-        agent.actor_network.save('Section 4 - DDPG/LunarLanderContinuous-v2/actor_LunarLander.h5')
-        agent.critic_network.save('Section 4 - DDPG/LunarLanderContinuous-v2/critic_LunarLander.h5')
-        agent.actor_network_target.save('Section 4 - DDPG/LunarLanderContinuous-v2/actor_target_LunarLander.h5')
-        agent.critic_network_target.save('Section 4 - DDPG/LunarLanderContinuous-v2/critic_target_LunarLander.h5')
+        agent.actor_network.save('LunarLanderContinuous-v2/actor_LunarLander.h5')
+        agent.critic_network.save('LunarLanderContinuous-v2/critic_LunarLander.h5')
+        agent.actor_network_target.save('LunarLanderContinuous-v2/actor_target_LunarLander.h5')
+        agent.critic_network_target.save('LunarLanderContinuous-v2/critic_target_LunarLander.h5')
 
     else:
         # Importing the trained networks
-        agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/actor_LunarLander.h5')
-        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/actor_target_LunarLander.h5')
-        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/critic_LunarLander.h5')
-        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/LunarLanderContinuous-v2/critic_target_LunarLander.h5')
+        agent.actor_network = tf.keras.models.load_model('LunarLanderContinuous-v2/actor_LunarLander.h5')
+        agent.actor_network_target = tf.keras.models.load_model('LunarLanderContinuous-v2/actor_target_LunarLander.h5')
+        agent.critic_network = tf.keras.models.load_model('LunarLanderContinuous-v2/critic_LunarLander.h5')
+        agent.critic_network_target = tf.keras.models.load_model('LunarLanderContinuous-v2/critic_target_LunarLander.h5')
 
         # Showing the video
         for _ in range(10):
