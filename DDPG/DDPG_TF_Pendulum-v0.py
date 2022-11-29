@@ -113,7 +113,7 @@ class Agent:
             action += tf.random.normal(shape=action.shape, mean=0.0, stddev=0.01)
             action = tf.clip_by_value(action, clip_value_min=-1.0, clip_value_max=1.0)
 
-        return action.numpy()[0]  # todo Check that actions are being stored properly in the buffer
+        return action.numpy()[0]
 
     def update_networks(self):
         states, actions, rewards, new_states, dones = self.replay_buffer.sample(batch_size=self.batch_size)
@@ -215,20 +215,20 @@ def main(training):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
         plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        plt.savefig('Section 4 - DDPG/Pendulum-v0_TF/Rewards_Pendulum-v0')
+        plt.savefig('Pendulum-v0_TF/Rewards_Pendulum-v0')
 
         # Saving the networks
-        agent.critic.save_weights('Section 4 - DDPG/Pendulum-v0_TF/critic_Pendulum-v0')
-        agent.actor.save_weights('Section 4 - DDPG/Pendulum-v0_TF/actor_Pendulum-v0')
-        agent.target_critic.save_weights('Section 4 - DDPG/Pendulum-v0_TF/target_critic_Pendulum-v0')
-        agent.target_actor.save_weights('Section 4 - DDPG/Pendulum-v0_TF/target_actor_Pendulum-v0')
+        agent.critic.save_weights('Pendulum-v0_TF/critic_Pendulum-v0')
+        agent.actor.save_weights('Pendulum-v0_TF/actor_Pendulum-v0')
+        agent.target_critic.save_weights('Pendulum-v0_TF/target_critic_Pendulum-v0')
+        agent.target_actor.save_weights('Pendulum-v0_TF/target_actor_Pendulum-v0')
 
     else:
         # Loading networks
-        agent.critic.load_weights('Section 4 - DDPG/Pendulum-v0_TF/critic_Pendulum-v0')
-        agent.actor.load_weights('Section 4 - DDPG/Pendulum-v0_TF/actor_Pendulum-v0')
-        agent.target_critic.load_weights('Section 4 - DDPG/Pendulum-v0_TF/target_critic_Pendulum-v0')
-        agent.target_actor.load_weights('Section 4 - DDPG/Pendulum-v0_TF/target_actor_Pendulum-v0')
+        agent.critic.load_weights('Pendulum-v0_TF/critic_Pendulum-v0')
+        agent.actor.load_weights('Pendulum-v0_TF/actor_Pendulum-v0')
+        agent.target_critic.load_weights('Pendulum-v0_TF/target_critic_Pendulum-v0')
+        agent.target_actor.load_weights('Pendulum-v0_TF/target_actor_Pendulum-v0')
 
         # Showing video
         action_max = env.action_space.high
