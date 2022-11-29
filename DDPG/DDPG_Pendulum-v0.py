@@ -185,20 +185,20 @@ def main(training=False):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
         plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        plt.savefig('Section 4 - DDPG/Pendulum-v0/Rewards_pendulum')
+        plt.savefig('Pendulum-v0/Rewards_pendulum')
 
         # Saving the networks
-        agent.actor_network.save('Section 4 - DDPG/Pendulum-v0/actor_pendulum.h5')
-        agent.critic_network.save('Section 4 - DDPG/Pendulum-v0/critic_pendulum.h5')
-        agent.actor_network_target.save('Section 4 - DDPG/Pendulum-v0/actor_target_pendulum.h5')
-        agent.critic_network_target.save('Section 4 - DDPG/Pendulum-v0/critic_target_pendulum.h5')
+        agent.actor_network.save('Pendulum-v0/actor_pendulum.h5')
+        agent.critic_network.save('Pendulum-v0/critic_pendulum.h5')
+        agent.actor_network_target.save('Pendulum-v0/actor_target_pendulum.h5')
+        agent.critic_network_target.save('Pendulum-v0/critic_target_pendulum.h5')
 
     else:
         # Importing the trained networks
-        agent.actor_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_pendulum.h5')
-        agent.actor_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/actor_target_pendulum.h5')
-        agent.critic_network = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_pendulum.h5')
-        agent.critic_network_target = tf.keras.models.load_model('Section 4 - DDPG/Pendulum-v0/critic_target_pendulum.h5')
+        agent.actor_network = tf.keras.models.load_model('Pendulum-v0/actor_pendulum.h5')
+        agent.actor_network_target = tf.keras.models.load_model('Pendulum-v0/actor_target_pendulum.h5')
+        agent.critic_network = tf.keras.models.load_model('Pendulum-v0/critic_pendulum.h5')
+        agent.critic_network_target = tf.keras.models.load_model('Pendulum-v0/critic_target_pendulum.h5')
 
         # Showing the video
         for _ in range(10):
