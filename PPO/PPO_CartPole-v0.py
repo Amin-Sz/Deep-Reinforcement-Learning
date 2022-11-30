@@ -221,7 +221,7 @@ def play_one_episode(agent, env):
 
 def main(training=True):
     env = gym.make('CartPole-v0')
-    dir_ = 'Section 5 - PPO/CartPole-v0'
+    dir_ = 'CartPole-v0'
 
     batch_size = 5
     gamma = 0.99
