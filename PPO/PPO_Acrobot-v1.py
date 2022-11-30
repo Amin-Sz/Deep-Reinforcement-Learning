@@ -221,7 +221,7 @@ def play_one_episode(agent, env):
 
 def main(training=True):
     env = gym.make('Acrobot-v1')
-    dir_ = 'Section 5 - PPO/Acrobot-v1'
+    dir_ = 'Acrobot-v1'
 
     batch_size = 5
     gamma = 0.99
