@@ -237,7 +237,7 @@ def play_one_episode(agent, env):
 
 def main(training=True):
     env = gym.make('BipedalWalker-v3')
-    dir_ = 'Section 5 - PPO/BipedalWalker-v3'
+    dir_ = 'BipedalWalker-v3'
 
     batch_size = 64
     gamma = 0.99
