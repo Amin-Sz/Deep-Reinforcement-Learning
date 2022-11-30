@@ -239,7 +239,7 @@ def play_one_episode(agent, env):
 
 def main(training=True):
     env = gym.make('InvertedPendulumSwingupBulletEnv-v0')
-    dir_ = 'Section 5 - PPO/InvertedPendulumSwingupPyBulletEnv-v0'
+    dir_ = 'InvertedPendulumSwingupPyBulletEnv-v0'
 
     batch_size = 10
     gamma = 0.99
