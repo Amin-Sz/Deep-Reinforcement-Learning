@@ -229,7 +229,7 @@ def play_one_episode(agent, env):
 
 def main(training=True):
     env = gym.make('HalfCheetahBulletEnv-v0')
-    dir_ = 'Section 6 - TD3/HalfCheetahPyBulletEnv-v0'
+    dir_ = 'HalfCheetahPyBulletEnv-v0'
     gamma = 0.99
     tau = 5e-3
     warm_up = 5000
