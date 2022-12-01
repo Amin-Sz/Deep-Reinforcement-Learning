@@ -250,7 +250,7 @@ def play_one_episode(agent, env, training, render=False):
 def main(training=True):
     env_name = 'Ant-v4'
     env = gym.make(env_name)
-    path = 'Section 6 - TD3/' + env_name
+    path = env_name
 
     gamma = 0.99
     tau = 5e-3
