@@ -385,24 +385,24 @@ def main(training=True):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_set[-100:]) + ')'
         plt.legend(['Reward', legend_2, 'Reward of 300'], loc=4)
         plt.show()
-        plt.savefig('Section 8 - LSTM-TD3/BipedalWalker-v3/Rewards_BipedalWalker')
+        plt.savefig('BipedalWalker-v3/Rewards_BipedalWalker')
 
         # Saving the networks
-        T.save(agent.critic_1.state_dict(), 'Section 8 - LSTM-TD3/BipedalWalker-v3/critic_1')
-        T.save(agent.critic_2.state_dict(), 'Section 8 - LSTM-TD3/BipedalWalker-v3/critic_2')
-        T.save(agent.actor.state_dict(), 'Section 8 - LSTM-TD3/BipedalWalker-v3/actor')
-        T.save(agent.target_critic_1.state_dict(), 'Section 8 - LSTM-TD3/BipedalWalker-v3/target_critic_1')
-        T.save(agent.target_critic_2.state_dict(), 'Section 8 - LSTM-TD3/BipedalWalker-v3/target_critic_2')
-        T.save(agent.target_actor.state_dict(), 'Section 8 - LSTM-TD3/BipedalWalker-v3/target_actor')
+        T.save(agent.critic_1.state_dict(), 'BipedalWalker-v3/critic_1')
+        T.save(agent.critic_2.state_dict(), 'BipedalWalker-v3/critic_2')
+        T.save(agent.actor.state_dict(), 'BipedalWalker-v3/actor')
+        T.save(agent.target_critic_1.state_dict(), 'BipedalWalker-v3/target_critic_1')
+        T.save(agent.target_critic_2.state_dict(), 'BipedalWalker-v3/target_critic_2')
+        T.save(agent.target_actor.state_dict(), 'BipedalWalker-v3/target_actor')
 
     else:
         # Loading the trained networks
-        agent.critic_1.load_state_dict(T.load('Section 8 - LSTM-TD3/BipedalWalker-v3/critic_1'))
-        agent.critic_2.load_state_dict(T.load('Section 8 - LSTM-TD3/BipedalWalker-v3/critic_2'))
-        agent.actor.load_state_dict(T.load('Section 8 - LSTM-TD3/BipedalWalker-v3/actor'))
-        agent.target_critic_1.load_state_dict(T.load('Section 8 - LSTM-TD3/BipedalWalker-v3/target_critic_1'))
-        agent.target_critic_2.load_state_dict(T.load('Section 8 - LSTM-TD3/BipedalWalker-v3/target_critic_2'))
-        agent.target_actor.load_state_dict(T.load('Section 8 - LSTM-TD3/BipedalWalker-v3/target_actor'))
+        agent.critic_1.load_state_dict(T.load('BipedalWalker-v3/critic_1'))
+        agent.critic_2.load_state_dict(T.load('BipedalWalker-v3/critic_2'))
+        agent.actor.load_state_dict(T.load('BipedalWalker-v3/actor'))
+        agent.target_critic_1.load_state_dict(T.load('BipedalWalker-v3/target_critic_1'))
+        agent.target_critic_2.load_state_dict(T.load('BipedalWalker-v3/target_critic_2'))
+        agent.target_actor.load_state_dict(T.load('BipedalWalker-v3/target_actor'))
 
         # Showing the video
         for t in range(5):
