@@ -287,7 +287,7 @@ def play_one_episode(env, agent):
 
 def main(training):
     env = gym.make('BipedalWalkerHardcore-v3')
-    dir_ = 'Section 7 - SAC/BipedalWalkerHardcore-v3'
+    dir_ = 'BipedalWalkerHardcore-v3'
 
     batch_size = 256
     reward_scale = 7.5
