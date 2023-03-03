@@ -261,7 +261,7 @@ def play_one_episode(env, agent):
 def main(training):
     env_name = 'HalfCheetah-v4'
     env = gym.make(env_name)
-    path = 'Section 7 - SAC/' + env_name
+    path = env_name
 
     batch_size = 256
     reward_scale = 7.5
