@@ -287,21 +287,21 @@ def main(training):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
         plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        plt.savefig('Section 7 - SAC/MountainCarContinuous/Rewards_MountainCarContinuous')
+        plt.savefig('MountainCarContinuous/Rewards_MountainCarContinuous')
 
         # Saving the trained networks
-        T.save(agent.value.state_dict(), 'Section 7 - SAC/MountainCarContinuous/value_network')
-        T.save(agent.target_value.state_dict(), 'Section 7 - SAC/MountainCarContinuous/target_value_network')
-        T.save(agent.critic_1.state_dict(), 'Section 7 - SAC/MountainCarContinuous/critic_1_network')
-        T.save(agent.critic_2.state_dict(), 'Section 7 - SAC/MountainCarContinuous/critic_2_network')
-        T.save(agent.actor.state_dict(), 'Section 7 - SAC/MountainCarContinuous/actor_network')
+        T.save(agent.value.state_dict(), 'MountainCarContinuous/value_network')
+        T.save(agent.target_value.state_dict(), 'MountainCarContinuous/target_value_network')
+        T.save(agent.critic_1.state_dict(), 'MountainCarContinuous/critic_1_network')
+        T.save(agent.critic_2.state_dict(), 'MountainCarContinuous/critic_2_network')
+        T.save(agent.actor.state_dict(), 'MountainCarContinuous/actor_network')
 
     else:
         # Loading the trained networks
-        agent.value.load_state_dict(T.load('Section 7 - SAC/MountainCarContinuous/value_network'))
-        agent.critic_1.load_state_dict(T.load('Section 7 - SAC/MountainCarContinuous/critic_1_network'))
-        agent.critic_2.load_state_dict(T.load('Section 7 - SAC/MountainCarContinuous/critic_2_network'))
-        agent.actor.load_state_dict(T.load('Section 7 - SAC/MountainCarContinuous/actor_network'))
+        agent.value.load_state_dict(T.load('MountainCarContinuous/value_network'))
+        agent.critic_1.load_state_dict(T.load('MountainCarContinuous/critic_1_network'))
+        agent.critic_2.load_state_dict(T.load('MountainCarContinuous/critic_2_network'))
+        agent.actor.load_state_dict(T.load('MountainCarContinuous/actor_network'))
 
         # Showing the video
         for t in range(10):
