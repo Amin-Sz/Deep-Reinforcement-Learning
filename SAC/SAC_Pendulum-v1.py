@@ -242,7 +242,7 @@ def play_one_episode(env, agent):
 
 
 def main(training):
-    env = gym.make('Pendulum-v0')
+    env = gym.make('Pendulum-v0')  # Use 'Pendulum-v1' if you're using new version
 
     batch_size = 256
     reward_scale = 2.0
@@ -276,21 +276,21 @@ def main(training):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
         plt.legend(['Reward', legend_2], loc=4)
         plt.show()
-        plt.savefig('Section 7 - SAC/Pendulum-v0/Rewards_Pendulum-v0')
+        plt.savefig('Pendulum-v0/Rewards_Pendulum-v0')
 
         # Saving the trained networks
-        T.save(agent.value.state_dict(), 'Section 7 - SAC/Pendulum-v0/value_network')
-        T.save(agent.target_value.state_dict(), 'Section 7 - SAC/Pendulum-v0/target_value_network')
-        T.save(agent.critic_1.state_dict(), 'Section 7 - SAC/Pendulum-v0/critic_1_network')
-        T.save(agent.critic_2.state_dict(), 'Section 7 - SAC/Pendulum-v0/critic_2_network')
-        T.save(agent.actor.state_dict(), 'Section 7 - SAC/Pendulum-v0/actor_network')
+        T.save(agent.value.state_dict(), 'Pendulum-v0/value_network')
+        T.save(agent.target_value.state_dict(), 'Pendulum-v0/target_value_network')
+        T.save(agent.critic_1.state_dict(), 'Pendulum-v0/critic_1_network')
+        T.save(agent.critic_2.state_dict(), 'Pendulum-v0/critic_2_network')
+        T.save(agent.actor.state_dict(), 'Pendulum-v0/actor_network')
 
     else:
         # Loading the trained networks
-        agent.value.load_state_dict(T.load('Section 7 - SAC/Pendulum-v0/value_network'))
-        agent.critic_1.load_state_dict(T.load('Section 7 - SAC/Pendulum-v0/critic_1_network'))
-        agent.critic_2.load_state_dict(T.load('Section 7 - SAC/Pendulum-v0/critic_2_network'))
-        agent.actor.load_state_dict(T.load('Section 7 - SAC/Pendulum-v0/actor_network'))
+        agent.value.load_state_dict(T.load('Pendulum-v0/value_network'))
+        agent.critic_1.load_state_dict(T.load('Pendulum-v0/critic_1_network'))
+        agent.critic_2.load_state_dict(T.load('Pendulum-v0/critic_2_network'))
+        agent.actor.load_state_dict(T.load('Pendulum-v0/actor_network'))
 
         # Showing the video
         for t in range(10):
