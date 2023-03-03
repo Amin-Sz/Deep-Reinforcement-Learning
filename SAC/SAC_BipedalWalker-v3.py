@@ -288,21 +288,21 @@ def main(training):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
         plt.legend(['Reward', legend_2, 'Reward of 300'], loc=4)
         plt.show()
-        plt.savefig('Section 7 - SAC/BipedalWalker-v3/Rewards_BipedalWalker-v3')
+        plt.savefig('BipedalWalker-v3/Rewards_BipedalWalker-v3')
 
         # Saving the trained networks
-        T.save(agent.value.state_dict(), 'Section 7 - SAC/BipedalWalker-v3/value_network')
-        T.save(agent.target_value.state_dict(), 'Section 7 - SAC/BipedalWalker-v3/target_value_network')
-        T.save(agent.critic_1.state_dict(), 'Section 7 - SAC/BipedalWalker-v3/critic_1_network')
-        T.save(agent.critic_2.state_dict(), 'Section 7 - SAC/BipedalWalker-v3/critic_2_network')
-        T.save(agent.actor.state_dict(), 'Section 7 - SAC/BipedalWalker-v3/actor_network')
+        T.save(agent.value.state_dict(), 'BipedalWalker-v3/value_network')
+        T.save(agent.target_value.state_dict(), 'BipedalWalker-v3/target_value_network')
+        T.save(agent.critic_1.state_dict(), 'BipedalWalker-v3/critic_1_network')
+        T.save(agent.critic_2.state_dict(), 'BipedalWalker-v3/critic_2_network')
+        T.save(agent.actor.state_dict(), 'BipedalWalker-v3/actor_network')
 
     else:
         # Loading the trained networks
-        agent.value.load_state_dict(T.load('Section 7 - SAC/BipedalWalker-v3/value_network'))
-        agent.critic_1.load_state_dict(T.load('Section 7 - SAC/BipedalWalker-v3/critic_1_network'))
-        agent.critic_2.load_state_dict(T.load('Section 7 - SAC/BipedalWalker-v3/critic_2_network'))
-        agent.actor.load_state_dict(T.load('Section 7 - SAC/BipedalWalker-v3/actor_network'))
+        agent.value.load_state_dict(T.load('BipedalWalker-v3/value_network'))
+        agent.critic_1.load_state_dict(T.load('BipedalWalker-v3/critic_1_network'))
+        agent.critic_2.load_state_dict(T.load('BipedalWalker-v3/critic_2_network'))
+        agent.actor.load_state_dict(T.load('BipedalWalker-v3/actor_network'))
 
         # Showing the video
         for t in range(10):
