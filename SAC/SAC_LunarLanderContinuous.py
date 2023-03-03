@@ -277,21 +277,21 @@ def main(training):
         legend_2 = 'Running average of the last 100 episodes (' + '%.2f' % np.mean(reward_history[-100:]) + ')'
         plt.legend(['Reward', legend_2, 'Reward of 200'], loc=4)
         plt.show()
-        plt.savefig('Section 7 - SAC/LunarLanderContinuous-v2/Rewards_LunarLanderContinuous-v2')
+        plt.savefig('LunarLanderContinuous-v2/Rewards_LunarLanderContinuous-v2')
 
         # Saving the trained networks
-        T.save(agent.value.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/value_network')
-        T.save(agent.target_value.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/target_value_network')
-        T.save(agent.critic_1.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/critic_1_network')
-        T.save(agent.critic_2.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/critic_2_network')
-        T.save(agent.actor.state_dict(), 'Section 7 - SAC/LunarLanderContinuous-v2/actor_network')
+        T.save(agent.value.state_dict(), 'LunarLanderContinuous-v2/value_network')
+        T.save(agent.target_value.state_dict(), 'LunarLanderContinuous-v2/target_value_network')
+        T.save(agent.critic_1.state_dict(), 'LunarLanderContinuous-v2/critic_1_network')
+        T.save(agent.critic_2.state_dict(), 'LunarLanderContinuous-v2/critic_2_network')
+        T.save(agent.actor.state_dict(), 'LunarLanderContinuous-v2/actor_network')
 
     else:
         # Loading the trained networks
-        agent.value.load_state_dict(T.load('Section 7 - SAC/LunarLanderContinuous-v2/value_network'))
-        agent.critic_1.load_state_dict(T.load('Section 7 - SAC/LunarLanderContinuous-v2/critic_1_network'))
-        agent.critic_2.load_state_dict(T.load('Section 7 - SAC/LunarLanderContinuous-v2/critic_2_network'))
-        agent.actor.load_state_dict(T.load('Section 7 - SAC/LunarLanderContinuous-v2/actor_network'))
+        agent.value.load_state_dict(T.load('LunarLanderContinuous-v2/value_network'))
+        agent.critic_1.load_state_dict(T.load('LunarLanderContinuous-v2/critic_1_network'))
+        agent.critic_2.load_state_dict(T.load('LunarLanderContinuous-v2/critic_2_network'))
+        agent.actor.load_state_dict(T.load('LunarLanderContinuous-v2/actor_network'))
 
         # Showing the video
         for t in range(10):
